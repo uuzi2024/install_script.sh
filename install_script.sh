@@ -1,103 +1,307 @@
 #!/bin/bash
 
-# 定义颜色和进度条函数
-RED='\033[0;31m'
+# Define colors for highlighting
 GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
-BOLD='\033[1m'
-UNDERLINE='\033[4m'
 
-progress_bar() {
-    pid=$1
-    t=0
-    max=20 # 进度条的最大长度
-    p="█"
-    while kill -0 $pid 2>/dev/null; do
-        if [ $t -lt $max ]; then
-            t=$((t+1))
-            printf "\r[${GREEN}${p:0:$t}${NC}%.0s] $t%%"
-        else
-            printf "\r[${GREEN}${p:0:$max}${NC}%.0s] $t%%"
-        fi
-        sleep 1
-    done
-    printf "\r[${GREEN}${p:0:$max}${NC}%.0s] 100%%\n"
+ip_address() {
+ipv4_address=$(curl -s ipv4.ip.sb)
+ipv6_address=$(curl -s --max-time 1 ipv6.ip.sb)
 }
 
-error_exit() {
-    echo -e "${RED}错误: $1${NC}"
-    exit 1
+# Function to check if Docker is installed
+check_docker_installed() {
+    if command -v docker &>/dev/null; then
+        echo -e "${YELLOW}提示:${NC} Docker 已经安装在系统中."
+        return 0
+    else
+        return 1
+    fi
 }
 
-echo -e "${GREEN}一键自动安装脚本 1.0${NC}"
-echo -e "${GREEN}更新时间 2024-1-12${NC}"
+# Function to check if Docker Compose is installed
+check_docker_compose_installed() {
+    if command -v docker-compose &>/dev/null; then
+        echo -e "${YELLOW}提示:${NC} Docker Compose 已经安装在系统中."
+        return 0
+    else
+        return 1
+    fi
+}
 
-# 分割线
-echo -e "${GREEN}=================================================${NC}"
+# Function to display main menu
+show_menu() {
+    clear
+    echo -e "${GREEN}===== 主菜单 =====${NC}"
+    echo -e "${YELLOW}1.${NC} 查看系统信息"
+    echo -e "${YELLOW}2.${NC} 更新系统和开启BBR"
+    echo -e "${YELLOW}3.${NC} 安装Docker和Docker Compose"
+    echo -e "${YELLOW}4.${NC} 卸载Docker和Docker Compose"
+    echo -e "${YELLOW}5.${NC} 修改系统时间"
+    echo -e "${YELLOW}q.${NC} 退出"
+    echo -e "${YELLOW}请选择操作: ${NC}"
+    read choice
+    case $choice in
+        1) show_system_info ;;
+        2) update_system_and_enable_bbr ;;
+        3) install_docker ;;
+        4) uninstall_docker ;;
+        5) change_system_time ;;
+        q) exit ;;
+        *) echo "无效选项，请重新选择" && show_menu ;;
+    esac
+}
 
-# 确保脚本以 root 权限运行
-if [ "$EUID" -ne 0 ]; then
-    error_exit "请以 root 权限运行此脚本"
-fi
+# Function to display system information
+show_system_info() {
+    clear
+    ip_address
+    if [ "$(uname -m)" == "x86_64" ]; then
+      cpu_info=$(cat /proc/cpuinfo | grep 'model name' | uniq | sed -e 's/model name[[:space:]]*: //')
+    else
+      cpu_info=$(lscpu | grep 'BIOS Model name' | awk -F': ' '{print $2}' | sed 's/^[ \t]*//')
+    fi
 
-# 显示系统信息
-echo -e "${GREEN}显示系统信息:${NC}"
-echo "操作系统：$(lsb_release -d | cut -f2)"
-echo "内核版本：$(uname -r)"
-echo "CPU 信息：$(lscpu | grep 'Model name' | cut -d ':' -f2 | xargs)"
-echo "总计内存：$(free -h | grep 'Mem' | awk '{print $2}')"
-sleep 3
+    if [ -f /etc/alpine-release ]; then
+        # Alpine Linux 使用以下命令获取 CPU 使用率
+        cpu_usage_percent=$(top -bn1 | grep '^CPU' | awk '{print " "$4}' | cut -c 1-2)
+    else
+        # 其他系统使用以下命令获取 CPU 使用率
+        cpu_usage_percent=$(top -bn1 | grep "Cpu(s)" | awk '{print " "$2}')
+    fi
 
-# 更新软件包和系统
-echo -e "${GREEN}正在更新软件包和系统...${NC}"
-DEBIAN_FRONTEND=noninteractive apt-get update > /dev/null &
-apt_get_pid=$!
-progress_bar $apt_get_pid
-wait $apt_get_pid
-DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -o Dpkg::Options::="--force-confold" > /dev/null &
-apt_get_pid=$!
-progress_bar $apt_get_pid
-wait $apt_get_pid && update_status="成功" || update_status="失败"
 
-# 安装常用工具
-echo -e "${GREEN}正在安装常用工具...${NC}"
-apt-get install -y htop curl wget > /dev/null &
-apt_get_pid=$!
-progress_bar $apt_get_pid
-wait $apt_get_pid && tools_status="成功" || tools_status="失败"
+    cpu_cores=$(nproc)
 
-# 使用 Docker 官方安装脚本安装 Docker
-echo -e "${GREEN}正在使用 Docker 官方安装脚本安装 Docker...${NC}"
-curl -fsSL https://get.docker.com -o get-docker.sh
-bash get-docker.sh > /dev/null 2>&1 &
-apt_get_pid=$!
-progress_bar $apt_get_pid
-wait $apt_get_pid && docker_status="成功" || docker_status="失败"
+    mem_info=$(free -b | awk 'NR==2{printf "%.2f/%.2f MB (%.2f%%)", $3/1024/1024, $2/1024/1024, $3*100/$2}')
 
-# 自动获取并安装最新版本的 Docker Compose
-echo -e "${GREEN}正在安装 Docker Compose...${NC}"
-COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
-curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose > /dev/null 2>&1
-chmod +x /usr/local/bin/docker-compose > /dev/null 2>&1 &
-apt_get_pid=$!
-progress_bar $apt_get_pid
-wait $apt_get_pid && compose_status="成功" || compose_status="失败"
+    disk_info=$(df -h | awk '$NF=="/"{printf "%s/%s (%s)", $3, $2, $5}')
 
-# 启用 TCP BBR
-echo -e "${GREEN}正在启用 TCP BBR...${NC}"
-echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-sysctl -p > /dev/null &
-apt_get_pid=$!
-progress_bar $apt_get_pid
-wait $apt_get_pid && bbr_status="成功" || bbr_status="失败"
+    country=$(curl -s ipinfo.io/country)
+    city=$(curl -s ipinfo.io/city)
 
-# 显示结束报告
-echo -e "${GREEN}${BOLD}${UNDERLINE}安装和配置报告:${NC}${BOLD}"
-echo "1. 系统更新：${update_status}"
-echo "2. 常用工具安装：${tools_status}"
-echo "3. Docker 安装：${docker_status}"
-echo "4. Docker Compose 安装：${compose_status}"
-echo "5. TCP BBR 启用：${bbr_status}"
-echo -e "${NC}"
-echo -e "${GREEN}所有操作完成！${NC}"
+    isp_info=$(curl -s ipinfo.io/org)
+
+    cpu_arch=$(uname -m)
+
+    hostname=$(hostname)
+
+    kernel_version=$(uname -r)
+
+    congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control)
+    queue_algorithm=$(sysctl -n net.core.default_qdisc)
+
+    # 尝试使用 lsb_release 获取系统信息
+    os_info=$(lsb_release -ds 2>/dev/null)
+
+    # 如果 lsb_release 命令失败，则尝试其他方法
+    if [ -z "$os_info" ]; then
+      # 检查常见的发行文件
+      if [ -f "/etc/os-release" ]; then
+        os_info=$(source /etc/os-release && echo "$PRETTY_NAME")
+      elif [ -f "/etc/debian_version" ]; then
+        os_info="Debian $(cat /etc/debian_version)"
+      elif [ -f "/etc/redhat-release" ]; then
+        os_info=$(cat /etc/redhat-release)
+      else
+        os_info="Unknown"
+      fi
+    fi
+
+    output=$(awk 'BEGIN { rx_total = 0; tx_total = 0 }
+        NR > 2 { rx_total += $2; tx_total += $10 }
+        END {
+            rx_units = "Bytes";
+            tx_units = "Bytes";
+            if (rx_total > 1024) { rx_total /= 1024; rx_units = "KB"; }
+            if (rx_total > 1024) { rx_total /= 1024; rx_units = "MB"; }
+            if (rx_total > 1024) { rx_total /= 1024; rx_units = "GB"; }
+
+            if (tx_total > 1024) { tx_total /= 1024; tx_units = "KB"; }
+            if (tx_total > 1024) { tx_total /= 1024; tx_units = "MB"; }
+            if (tx_total > 1024) { tx_total /= 1024; tx_units = "GB"; }
+
+            printf("总接收: %.2f %s\n总发送: %.2f %s\n", rx_total, rx_units, tx_total, tx_units);
+        }' /proc/net/dev)
+
+
+    current_time=$(date "+%Y-%m-%d %I:%M %p")
+
+
+    swap_used=$(free -m | awk 'NR==3{print $3}')
+    swap_total=$(free -m | awk 'NR==3{print $2}')
+
+    if [ "$swap_total" -eq 0 ]; then
+        swap_percentage=0
+    else
+        swap_percentage=$((swap_used * 100 / swap_total))
+    fi
+
+    swap_info="${swap_used}MB/${swap_total}MB (${swap_percentage}%)"
+
+    runtime=$(cat /proc/uptime | awk -F. '{run_days=int($1 / 86400);run_hours=int(($1 % 86400) / 3600);run_minutes=int(($1 % 3600) / 60); if (run_days > 0) printf("%d天 ", run_days); if (run_hours > 0) printf("%d时 ", run_hours); printf("%d分\n", run_minutes)}')
+
+    echo ""
+    echo -e "${GREEN}============== 系统信息 ============== ${NC}"
+    echo ""
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "主机名: $hostname"
+    echo "运营商: $isp_info"
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "系统版本: $os_info"
+    echo "Linux版本: $kernel_version"
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "CPU架构: $cpu_arch"
+    echo "CPU型号: $cpu_info"
+    echo "CPU核心数: $cpu_cores"
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "CPU占用: $cpu_usage_percent%"
+    echo "物理内存: $mem_info"
+    echo "虚拟内存: $swap_info"
+    echo "硬盘占用: $disk_info"
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "$output"
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "网络拥堵算法: $congestion_algorithm $queue_algorithm"
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "公网IPv4地址: $ipv4_address"
+    echo "公网IPv6地址: $ipv6_address"
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "地理位置: $country $city"
+    echo "系统时间: $current_time"
+    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "系统运行时长: $runtime"
+    echo ""
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
+
+# Function to update the system and enable BBR
+update_system_and_enable_bbr() {
+    clear
+    echo -e "${GREEN}===== 更新系统和开启BBR =====${NC}"
+    echo "执行更新系统的命令..."
+    sudo apt update && sudo apt upgrade -y
+    echo ""
+    echo "执行开启BBR的命令..."
+    # 开启BBR
+    sudo modprobe tcp_bbr
+    echo "tcp_bbr" | sudo tee -a /etc/modules-load.d/modules.conf
+    echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+    echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+    sudo sysctl -p
+    echo "系统已更新并开启BBR！"
+    echo ""
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
+
+# Function to install Docker and Docker Compose
+install_docker() {
+    clear
+    echo -e "${GREEN}===== 安装Docker和Docker Compose =====${NC}"
+    
+    if check_docker_installed && check_docker_compose_installed; then
+        echo ""
+        read -p "按任意键返回主菜单..." -n 1 -r
+        show_menu
+    fi
+    
+    if ! check_docker_installed; then
+        echo "执行安装Docker的命令..."
+        sudo apt update
+        sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sudo sh get-docker.sh
+        sudo usermod -aG docker $USER
+        sudo systemctl enable docker
+        sudo systemctl start docker
+        echo "Docker已安装！"
+    fi
+    
+    if ! check_docker_compose_installed; then
+        echo "执行安装Docker Compose的命令..."
+        sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        echo "Docker Compose已安装！"
+    fi
+    
+    echo ""
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
+
+# Function to uninstall Docker and Docker Compose
+uninstall_docker() {
+    clear
+    echo -e "${GREEN}===== 卸载Docker和Docker Compose =====${NC}"
+    
+    if ! check_docker_installed && ! check_docker_compose_installed; then
+        echo -e "${YELLOW}提示:${NC} 系统中未安装 Docker 和 Docker Compose."
+        echo ""
+        read -p "按任意键返回主菜单..." -n 1 -r
+        show_menu
+    fi
+    
+    echo -e "${YELLOW}提示:${NC} 这条命令会删除所有与 Docker 相关的数据，包括镜像、容器、卷等，运行之前，请确保您已经备份了所有重要的数据，小心操作"
+    echo ""
+    read -p "是否继续？(按 Enter 继续, 按 0 取消): " confirm
+    if [[ "$confirm" == "0" ]]; then
+        echo "取消卸载操作"
+        show_menu
+    fi
+    
+    if check_docker_installed; then
+        echo "执行卸载 Docker 的命令..."
+        sudo apt-get purge  -y docker-ce docker-ce-cli containerd.io
+        sudo rm -rf /var/lib/docker
+        sudo rm -rf /etc/docker
+        sudo groupdel docker
+        echo "Docker 已卸载！"
+    fi
+    
+    if check_docker_compose_installed; then
+        echo "执行卸载 Docker Compose 的命令..."
+        sudo rm -rf /usr/local/bin/docker-compose
+        echo "Docker Compose 已卸载！"
+    fi
+    
+    echo ""
+    show_menu
+}
+
+# Function to change system time
+change_system_time() {
+    clear
+    echo -e "${GREEN}===== 修改系统时间 =====${NC}"
+    echo -e "${YELLOW}1.${NC} 中国上海"
+    echo -e "${YELLOW}2.${NC} 美国纽约"
+    echo -e "${YELLOW}3.${NC} 英国伦敦"
+    echo -e "${YELLOW}4.${NC} 日本东京"
+    echo -e "${YELLOW}5.${NC} 澳大利亚悉尼"
+    echo -e "${YELLOW}6.${NC} 加拿大温哥华"
+    echo -e "${YELLOW}7.${NC} 德国柏林"
+    echo -e "${YELLOW}q.${NC} 返回主菜单"
+    echo -e "${YELLOW}请选择要修改时间的地区: ${NC}"
+    read choice
+    case $choice in
+        1) sudo timedatectl set-timezone Asia/Shanghai ;;
+        2) sudo timedatectl set-timezone America/New_York ;;
+        3) sudo timedatectl set-timezone Europe/London ;;
+        4) sudo timedatectl set-timezone Asia/Tokyo ;;
+        5) sudo timedatectl set-timezone Australia/Sydney ;;
+        6) sudo timedatectl set-timezone America/Vancouver ;;
+        7) sudo timedatectl set-timezone Europe/Berlin ;;
+        q) show_menu ;;
+        *) echo "无效选项，请重新选择" && change_system_time ;;
+    esac
+    echo "系统时间已修改！"
+    echo ""
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
+
+
+# Start the script by displaying the main menu
+show_menu
