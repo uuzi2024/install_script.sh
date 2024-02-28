@@ -1,3 +1,6 @@
+顺序调整：
+
+
 #!/bin/bash
 
 # Define colors for highlighting
@@ -28,29 +31,6 @@ check_docker_compose_installed() {
     else
         return 1
     fi
-}
-
-# Function to display main menu
-show_menu() {
-    clear
-    echo -e "${GREEN}===== 主菜单 =====${NC}"
-    echo -e "${YELLOW}1.${NC} 查看系统信息"
-    echo -e "${YELLOW}2.${NC} 更新系统和开启BBR"
-    echo -e "${YELLOW}3.${NC} 安装Docker和Docker Compose"
-    echo -e "${YELLOW}4.${NC} 卸载Docker和Docker Compose"
-    echo -e "${YELLOW}5.${NC} 修改系统时间"
-    echo -e "${YELLOW}q.${NC} 退出"
-    echo -e "${YELLOW}请选择操作: ${NC}"
-    read choice
-    case $choice in
-        1) show_system_info ;;
-        2) update_system_and_enable_bbr ;;
-        3) install_docker ;;
-        4) uninstall_docker ;;
-        5) change_system_time ;;
-        q) exit ;;
-        *) echo "无效选项，请重新选择" && show_menu ;;
-    esac
 }
 
 # Function to display system information
@@ -143,34 +123,32 @@ show_system_info() {
     runtime=$(cat /proc/uptime | awk -F. '{run_days=int($1 / 86400);run_hours=int(($1 % 86400) / 3600);run_minutes=int(($1 % 3600) / 60); if (run_days > 0) printf("%d天 ", run_days); if (run_hours > 0) printf("%d时 ", run_hours); printf("%d分\n", run_minutes)}')
 
     echo ""
-    echo -e "${GREEN}============== 系统信息 ============== ${NC}"
+    echo -e "${GREEN}================= 系统信息 ================= ${NC}"
     echo ""
-    echo -e "${GREEN}--------------------------------------${NC}"
-    echo "主机名: $hostname"
-    echo "运营商: $isp_info"
-    echo -e "${GREEN}--------------------------------------${NC}"
-    echo "系统版本: $os_info"
-    echo "Linux版本: $kernel_version"
-    echo -e "${GREEN}--------------------------------------${NC}"
+    echo -e "${GREEN}硬件信息：${NC}"
     echo "CPU架构: $cpu_arch"
     echo "CPU型号: $cpu_info"
     echo "CPU核心数: $cpu_cores"
-    echo -e "${GREEN}--------------------------------------${NC}"
     echo "CPU占用: $cpu_usage_percent%"
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo -e "${GREEN}系统信息：${NC}"
+    echo "系统版本: $os_info"
+    echo "Linux版本: $kernel_version"
     echo "物理内存: $mem_info"
     echo "虚拟内存: $swap_info"
     echo "硬盘占用: $disk_info"
-    echo -e "${GREEN}--------------------------------------${NC}"
-    echo "$output"
-    echo -e "${GREEN}--------------------------------------${NC}"
-    echo "网络拥堵算法: $congestion_algorithm $queue_algorithm"
-    echo -e "${GREEN}--------------------------------------${NC}"
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo -e "${GREEN}主机信息：${NC}"
+    echo "主机名: $hostname"
+    echo "运营商: $isp_info"
     echo "公网IPv4地址: $ipv4_address"
     echo "公网IPv6地址: $ipv6_address"
-    echo -e "${GREEN}--------------------------------------${NC}"
+    echo "网络拥堵算法: $congestion_algorithm $queue_algorithm"
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo "$output"
     echo "地理位置: $country $city"
     echo "系统时间: $current_time"
-    echo -e "${GREEN}--------------------------------------${NC}"
+    echo -e "${GREEN}--------------------------------------------${NC}"
     echo "系统运行时长: $runtime"
     echo ""
     read -p "按任意键返回主菜单..." -n 1 -r
@@ -183,19 +161,28 @@ update_system_and_enable_bbr() {
     echo -e "${GREEN}===== 更新系统和开启BBR =====${NC}"
     echo "执行更新系统的命令..."
     sudo apt update && sudo apt upgrade -y
+    echo "系统更新完成！"
     echo ""
-    echo "执行开启BBR的命令..."
-    # 开启BBR
-    sudo modprobe tcp_bbr
-    echo "tcp_bbr" | sudo tee -a /etc/modules-load.d/modules.conf
-    echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
-    echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
-    sudo sysctl -p
-    echo "系统已更新并开启BBR！"
+
+    # 检查是否已经启用了BBR
+    if [[ $(lsmod | grep -w tcp_bbr) ]]; then
+        echo "BBR 已经启用，无需重复开启。"
+    else
+        echo "执行开启BBR的命令..."
+        # 开启BBR
+        sudo modprobe tcp_bbr
+        echo "tcp_bbr" | sudo tee -a /etc/modules-load.d/modules.conf
+        echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+        echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+        sudo sysctl -p
+        echo "BBR 已成功启用！"
+    fi
+
     echo ""
     read -p "按任意键返回主菜单..." -n 1 -r
     show_menu
 }
+
 
 # Function to install Docker and Docker Compose
 install_docker() {
@@ -274,7 +261,7 @@ uninstall_docker() {
 # Function to change system time
 change_system_time() {
     clear
-    echo -e "${GREEN}===== 修改系统时间 =====${NC}"
+    echo -e "${GREEN}================= 系统时间 ================= ${NC}"
     echo -e "${YELLOW}1.${NC} 中国上海"
     echo -e "${YELLOW}2.${NC} 美国纽约"
     echo -e "${YELLOW}3.${NC} 英国伦敦"
@@ -302,6 +289,79 @@ change_system_time() {
     show_menu
 }
 
+# Function to clean up the file system
+clean_filesystem() {
+    clear
+    echo -e "${GREEN}=============== 文件系统清理 =============== ${NC}"
+    echo -e "${YELLOW}1.${NC} 删除临时文件"
+    echo -e "${YELLOW}2.${NC} 清理日志文件"
+    echo -e "${YELLOW}3.${NC} 清理系统缓存"
+    echo -e "${YELLOW}4.${NC} 一键清理所有临时、日志和缓存文件"
+    echo -e "${YELLOW}q.${NC} 返回主菜单"
+    echo -e "${YELLOW}请选择要执行的操作: ${NC}"
+    read choice
+    case $choice in
+        1) sudo rm -rf /tmp/* ;;
+        2) sudo rm -rf /var/log/*.log ;;
+        3) sudo apt clean ;;
+        4) clean_all_files ;;
+        q) show_menu ;;
+        *) echo "无效选项，请重新选择" && clean_filesystem ;;
+    esac
+    echo "文件系统清理完成！"
+    echo ""
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
 
+clean_all_files() {
+    sudo rm -rf /tmp/* /var/log/*.log /var/cache/apt/archives/*.deb
+}
+# Function to display current port usage
+show_port_usage() {
+    clear
+    echo -e "${GREEN}=============== 端口占用情况 =============== ${NC}"
+    echo -e "${GREEN}当前系统端口占用情况:${NC}"
+    echo ""
+    sudo netstat -tuln
+    echo ""
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
+# Function to display main menu
+show_menu() {
+    clear
+    echo -e "${GREEN}================= 兔哥脚本 ================= ${NC}"
+    echo -e ""
+    echo -e "脚本版本： ${YELLOW}V1.0.0${NC}       更新时间： ${YELLOW}2024-2-28${NC}"
+    echo -e ""
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo -e ""
+    echo -e "${YELLOW}1.${NC} 查看系统信息"
+    echo -e "${YELLOW}2.${NC} 更新系统和开启BBR"
+    echo -e "${YELLOW}3.${NC} 安装Docker和Docker Compose"
+    echo -e "${YELLOW}4.${NC} 卸载Docker和Docker Compose"
+    echo -e "${YELLOW}5.${NC} 修改系统时间"
+    echo -e "${YELLOW}6.${NC} 文件系统清理"
+    echo -e "${YELLOW}7.${NC} 查看端口占用情况"
+    echo -e ""
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo -e ""
+    echo -e "${YELLOW}0.${NC} ${GREEN}退出${NC}"
+    echo -e ""
+    echo -e "${YELLOW}请选择操作: ${NC}"
+    read choice
+    case $choice in
+        1) show_system_info ;;
+        2) update_system_and_enable_bbr ;;
+        3) install_docker ;;
+        4) uninstall_docker ;;
+        5) change_system_time ;;
+        6) clean_filesystem ;;
+        7) show_port_usage ;;
+        0) exit ;;
+        *) echo "无效选项，请重新选择" && show_menu ;;
+    esac
+}
 # Start the script by displaying the main menu
 show_menu
