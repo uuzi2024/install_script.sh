@@ -1,6 +1,3 @@
-顺序调整：
-
-
 #!/bin/bash
 
 # Define colors for highlighting
@@ -8,12 +5,13 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+#查询ipv4和ipv6地址
 ip_address() {
 ipv4_address=$(curl -s ipv4.ip.sb)
 ipv6_address=$(curl -s --max-time 1 ipv6.ip.sb)
 }
 
-# Function to check if Docker is installed
+# 检查是否安装docker
 check_docker_installed() {
     if command -v docker &>/dev/null; then
         echo -e "${YELLOW}提示:${NC} Docker 已经安装在系统中."
@@ -23,7 +21,7 @@ check_docker_installed() {
     fi
 }
 
-# Function to check if Docker Compose is installed
+# 检查是否安装docker compose
 check_docker_compose_installed() {
     if command -v docker-compose &>/dev/null; then
         echo -e "${YELLOW}提示:${NC} Docker Compose 已经安装在系统中."
@@ -33,7 +31,7 @@ check_docker_compose_installed() {
     fi
 }
 
-# Function to display system information
+# 显示系统信息
 show_system_info() {
     clear
     ip_address
@@ -259,8 +257,14 @@ uninstall_docker() {
 
 # Function to change system time
 change_system_time() {
+    current_timezone=$(timedatectl | grep "Time zone" | awk '{print $3}')
+    current_time=$(date)
+    #current_time_formatted=$(date +"%A %B %d %T %Y" -d "${current_time}")
+    current_time=$(date -d "${current_time}" +"%Y年%m月%d日 %H:%M:%S")
+
     clear
     echo -e "${GREEN}================= 系统时间 ================= ${NC}"
+    echo -e "${YELLOW}当前系统时间 (${current_timezone}): ${NC}${current_time}"
     echo -e "${YELLOW}1.${NC} 中国上海"
     echo -e "${YELLOW}2.${NC} 美国纽约"
     echo -e "${YELLOW}3.${NC} 英国伦敦"
@@ -272,21 +276,32 @@ change_system_time() {
     echo -e "${YELLOW}请选择要修改时间的地区: ${NC}"
     read choice
     case $choice in
-        1) sudo timedatectl set-timezone Asia/Shanghai ;;
-        2) sudo timedatectl set-timezone America/New_York ;;
-        3) sudo timedatectl set-timezone Europe/London ;;
-        4) sudo timedatectl set-timezone Asia/Tokyo ;;
-        5) sudo timedatectl set-timezone Australia/Sydney ;;
-        6) sudo timedatectl set-timezone America/Vancouver ;;
-        7) sudo timedatectl set-timezone Europe/Berlin ;;
+        1) timezone="Asia/Shanghai"; region="中国上海" ;;
+        2) timezone="America/New_York"; region="美国纽约" ;;
+        3) timezone="Europe/London"; region="英国伦敦" ;;
+        4) timezone="Asia/Tokyo"; region="日本东京" ;;
+        5) timezone="Australia/Sydney"; region="澳大利亚悉尼" ;;
+        6) timezone="America/Vancouver"; region="加拿大温哥华" ;;
+        7) timezone="Europe/Berlin"; region="德国柏林" ;;
         0) show_menu ;;
         *) echo "无效选项，请重新选择" && change_system_time ;;
     esac
-    echo "系统时间已修改！"
+    
+    sudo timedatectl set-timezone $timezone
+    modified_time=$(date)
+    #modified_time_formatted=$(date +"%A %B %d %T %Y" -d "${current_time}")
+    modified_time=$(date -d "${modified_time}" +"%Y年%m月%d日 %H:%M:%S")
+    
+    #echo "已将系统时间修改为${region}时间 (${timezone})"
+    #echo "当前时间为：${modified_time}"
+    echo -e "\e[1;33m已将系统时间修改为\e[0m\e[1;36m${region}时间 (${timezone})\e[0m"
+    echo -e "\e[1;33m当前时间为：\e[0m\e[1;36m${modified_time}\e[0m"
+
     echo ""
     read -p "按任意键返回主菜单..." -n 1 -r
     show_menu
 }
+
 
 # Function to clean up the file system
 clean_filesystem() {
@@ -328,28 +343,90 @@ show_port_usage() {
     show_menu
 }
 
+# Function to validate token
+validate_token() {
+    local token="$1"
+
+    # Check if the token length is 44 characters
+    if [ ${#token} -ne 44 ]; then
+        return 1
+    fi
+
+    # Check if the token contains only alphanumeric characters and '/'
+    if ! [[ "$token" =~ ^[A-Za-z0-9/]+$ ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
 # Function to add Docker project for traffmonetizer
 add_docker_project_traffmonetizer() {
+    # Check if Docker is installed
+    if ! command -v docker &> /dev/null; then
+        echo -e "\e[1;31m无法部署项目，请先返回主菜单安装 Docker 和 Docker Compose。\e[0m"
+        read -p "按任意键返回主菜单..." -n 1 -r
+        show_menu
+    fi
+
     clear
     echo -e "${GREEN}docker项目traffmonetizer${NC}"
-    read -p "请输入 token: " token
-    docker_command="docker run -d --restart=always --name tm traffmonetizer/cli_v2 start accept --token $token"
-    echo "执行部署代码: $docker_command"
-    # 执行部署代码
-    $docker_command
-    echo -e "${GREEN}traffmonetizer 项目已成功添加！${NC}"
-    read -p "按任意键返回主菜单..." -n 1 -r
-    show_menu
+
+    while true; do
+        #read -p "请输入 token 或输入 0 返回主菜单:" token
+        read -p $'\e[1;33m请输入 token 或输入 0 返回主菜单:\e[0m ' token
+
+        if [[ $token == 0 ]]; then
+            show_menu
+            break
+        fi
+
+        # 判断 token 是否为 44 个字符
+        if [[ ${#token} -ne 44 ]]; then
+            #echo "请输入正确的 44 个字符的 token："
+            echo -e "\e[1;33m请输入正确的 44 个字符的 token：\e[0m"
+            continue
+        fi
+
+        # 判断 token 中是否包含大小写字母或特殊字符 /
+        if [[ ! $token =~ [[:lower:]] || ! $token =~ [[:upper:]] || ! $token =~ "/" ]]; then
+            #echo "请输入正确的 token，包含大小写字母和特殊字符 /。"
+            echo -e "\e[1;33m请输入正确的 token，包含大小写字母和特殊字符 /。\e[0m"
+            continue
+        fi
+
+        docker_command="docker run -d --restart=always --name tm traffmonetizer/cli_v2 start accept --token $token"
+        #echo "执行部署代码: $docker_command"
+        echo -e "\e[1;32m执行部署代码: $docker_command\e[0m"
+
+        # 执行部署代码
+        $docker_command
+        echo -e "${GREEN}traffmonetizer 项目已成功添加！${NC}"
+        read -p "按任意键返回主菜单..." -n 1 -r
+        show_menu
+    done
 }
+
+
+
+
 
 # Function to list running Docker projects with creation time and current status
 list_running_docker_projects() {
     clear
-    echo -e "${GREEN}当前运行的 Docker 项目：${NC}"
-    docker ps --format "项目名称: {{.Names}}\n生成时间: {{.CreatedAt}}\n运行状态: {{.Status}}\n"
+    
+    # 判断系统是否安装了 Docker
+    if ! command -v docker &>/dev/null; then
+        echo "系统未安装 Docker，无任何项目可显示。"
+    else
+        echo -e "${GREEN}当前运行的 Docker 项目：${NC}"
+        docker ps --format "项目名称: {{.Names}}\n生成时间: {{.CreatedAt}}\n运行状态: {{.Status}}\n"
+    fi
+    
     read -p "按任意键返回主菜单..." -n 1 -r
     show_menu
 }
+
 
 # Function to display main menu
 show_menu() {
@@ -359,12 +436,13 @@ show_menu() {
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
     echo -e "${YELLOW}1.${NC} 查看系统信息"
-    echo -e "${YELLOW}2.${NC} 更新系统和开启BBR"
-    echo -e "${YELLOW}3.${NC} 安装Docker和Docker Compose"
-    echo -e "${YELLOW}4.${NC} 卸载Docker和Docker Compose"
-    echo -e "${YELLOW}5.${NC} 修改系统时间"
-    echo -e "${YELLOW}6.${NC} 文件系统清理"
-    echo -e "${YELLOW}7.${NC} 查看端口占用情况"
+    echo -e "${YELLOW}2.${NC} 修改系统时间"  
+    echo -e "${YELLOW}3.${NC} 文件系统清理"      
+    echo -e "${YELLOW}4.${NC} 更新系统和开启BBR"
+    echo -e "${YELLOW}5.${NC} 查看端口占用情况"    
+    echo -e "${YELLOW}6.${NC} 安装Docker和Docker Compose"
+    echo -e "${YELLOW}7.${NC} 卸载Docker和Docker Compose"
+
     echo -e "${YELLOW}8.${NC} 部署docker项目traffmonetizer"
     echo -e "${YELLOW}9.${NC} 查看系统中运行的docker项目"
     echo -e ""
@@ -376,12 +454,12 @@ show_menu() {
     read choice
     case $choice in
         1) show_system_info ;;
-        2) update_system_and_enable_bbr ;;
-        3) install_docker ;;
-        4) uninstall_docker ;;
-        5) change_system_time ;;
-        6) clean_filesystem ;;
-        7) show_port_usage ;;
+        2) change_system_time ;;
+        3) clean_filesystem ;;        
+        4) update_system_and_enable_bbr ;;
+        5) show_port_usage ;;        
+        6) install_docker ;;
+        7) uninstall_docker ;;
         8) add_docker_project_traffmonetizer ;;
         9) list_running_docker_projects ;;
         0) exit ;;
