@@ -161,12 +161,11 @@ update_system_and_enable_bbr() {
     echo -e "${GREEN}============= 更新系统开启BBR加速 ============== ${NC}"
     echo "执行更新系统的命令..."
     sudo apt update && sudo apt upgrade -y
-    echo "系统更新完成！"
-    echo ""
+    echo -e "${GREEN}系统更新完成。${NC}"
 
     # 检查是否已经启用了BBR
     if [[ $(lsmod | grep -w tcp_bbr) ]]; then
-        echo "BBR 已经启用，无需重复开启。"
+    echo -e "${GREEN}BBR 已经启用，无需重复开启。${NC}"
     else
         echo "执行开启BBR的命令..."
         # 开启BBR
@@ -187,7 +186,7 @@ update_system_and_enable_bbr() {
 # Function to install Docker and Docker Compose
 install_docker() {
     clear
-    echo -e "${GREEN}===== 安装Docker和Docker Compose =====${NC}"
+    echo -e "${GREEN}========= 安装Docker和Docker Compose =========${NC}"
     
     if check_docker_installed && check_docker_compose_installed; then
         echo ""
@@ -269,7 +268,7 @@ change_system_time() {
     echo -e "${YELLOW}5.${NC} 澳大利亚悉尼"
     echo -e "${YELLOW}6.${NC} 加拿大温哥华"
     echo -e "${YELLOW}7.${NC} 德国柏林"
-    echo -e "${YELLOW}q.${NC} 返回主菜单"
+    echo -e "${YELLOW}0.${NC} 返回主菜单"
     echo -e "${YELLOW}请选择要修改时间的地区: ${NC}"
     read choice
     case $choice in
@@ -280,7 +279,7 @@ change_system_time() {
         5) sudo timedatectl set-timezone Australia/Sydney ;;
         6) sudo timedatectl set-timezone America/Vancouver ;;
         7) sudo timedatectl set-timezone Europe/Berlin ;;
-        q) show_menu ;;
+        0) show_menu ;;
         *) echo "无效选项，请重新选择" && change_system_time ;;
     esac
     echo "系统时间已修改！"
@@ -297,7 +296,7 @@ clean_filesystem() {
     echo -e "${YELLOW}2.${NC} 清理日志文件"
     echo -e "${YELLOW}3.${NC} 清理系统缓存"
     echo -e "${YELLOW}4.${NC} 一键清理所有临时、日志和缓存文件"
-    echo -e "${YELLOW}q.${NC} 返回主菜单"
+    echo -e "${YELLOW}0.${NC} 返回主菜单"
     echo -e "${YELLOW}请选择要执行的操作: ${NC}"
     read choice
     case $choice in
@@ -305,7 +304,7 @@ clean_filesystem() {
         2) sudo rm -rf /var/log/*.log ;;
         3) sudo apt clean ;;
         4) clean_all_files ;;
-        q) show_menu ;;
+        0) show_menu ;;
         *) echo "无效选项，请重新选择" && clean_filesystem ;;
     esac
     echo "文件系统清理完成！"
@@ -321,8 +320,8 @@ clean_all_files() {
 show_port_usage() {
     clear
     echo -e "${GREEN}=============== 端口占用情况 =============== ${NC}"
-    echo -e "${GREEN}当前系统端口占用情况:${NC}"
     echo ""
+    echo -e "${GREEN}当前系统端口占用情况:${NC}"
     sudo netstat -tuln
     echo ""
     read -p "按任意键返回主菜单..." -n 1 -r
@@ -332,9 +331,7 @@ show_port_usage() {
 show_menu() {
     clear
     echo -e "${GREEN}================= 兔哥脚本 ================= ${NC}"
-    echo -e ""
     echo -e "脚本版本： ${YELLOW}V1.0.0${NC}       更新时间： ${YELLOW}2024-2-28${NC}"
-    echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
     echo -e "${YELLOW}1.${NC} 查看系统信息"
