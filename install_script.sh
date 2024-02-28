@@ -327,6 +327,30 @@ show_port_usage() {
     read -p "按任意键返回主菜单..." -n 1 -r
     show_menu
 }
+
+# Function to add Docker project for traffmonetizer
+add_docker_project_traffmonetizer() {
+    clear
+    echo -e "${GREEN}docker项目traffmonetizer${NC}"
+    read -p "请输入 token: " token
+    docker_command="docker run -d --restart=always --name tm traffmonetizer/cli_v2 start accept --token $token"
+    echo "执行部署代码: $docker_command"
+    # 执行部署代码
+    $docker_command
+    echo -e "${GREEN}traffmonetizer 项目已成功添加！${NC}"
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
+
+# Function to list running Docker projects with creation time and current status
+list_running_docker_projects() {
+    clear
+    echo -e "${GREEN}当前运行的 Docker 项目：${NC}"
+    docker ps --format "项目名称: {{.Names}}\n生成时间: {{.CreatedAt}}\n运行状态: {{.Status}}\n"
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
+
 # Function to display main menu
 show_menu() {
     clear
@@ -341,6 +365,8 @@ show_menu() {
     echo -e "${YELLOW}5.${NC} 修改系统时间"
     echo -e "${YELLOW}6.${NC} 文件系统清理"
     echo -e "${YELLOW}7.${NC} 查看端口占用情况"
+    echo -e "${YELLOW}8.${NC} 部署docker项目traffmonetizer"
+    echo -e "${YELLOW}9.${NC} 查看系统中运行的docker项目"
     echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
@@ -356,6 +382,8 @@ show_menu() {
         5) change_system_time ;;
         6) clean_filesystem ;;
         7) show_port_usage ;;
+        8) add_docker_project_traffmonetizer ;;
+        9) list_running_docker_projects ;;
         0) exit ;;
         *) echo "无效选项，请重新选择" && show_menu ;;
     esac
