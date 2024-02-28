@@ -158,7 +158,7 @@ show_system_info() {
 # Function to update the system and enable BBR
 update_system_and_enable_bbr() {
     clear
-    echo -e "${GREEN}===== 更新系统和开启BBR =====${NC}"
+    echo -e "${GREEN}============= 更新系统开启BBR加速 ============== ${NC}"
     echo "执行更新系统的命令..."
     sudo apt update && sudo apt upgrade -y
     echo "系统更新完成！"
@@ -222,7 +222,7 @@ install_docker() {
 # Function to uninstall Docker and Docker Compose
 uninstall_docker() {
     clear
-    echo -e "${GREEN}===== 卸载Docker和Docker Compose =====${NC}"
+    echo -e "${GREEN}=========== 卸载Docker和Docker Compose ===========${NC}"
     
     if ! check_docker_installed && ! check_docker_compose_installed; then
         echo -e "${YELLOW}提示:${NC} 系统中未安装 Docker 和 Docker Compose."
