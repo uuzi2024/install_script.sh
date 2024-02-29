@@ -429,6 +429,77 @@ list_running_docker_projects() {
     show_menu
 }
 
+# Function to add Docker project WordPress
+add_docker_project_wordpress() {
+    clear
+    echo -e "${GREEN}正在部署 WordPress 项目...${NC}"
+
+    # 创建所需目录并赋予 777 权限
+    mkdir -p /var/docker_data/wordpress /var/docker_data/mariadb
+    chmod 777 /var/docker_data/wordpress /var/docker_data/mariadb
+    
+    # 创建所需目录和文件
+    mkdir -p /var/docker_item/wordpress
+    touch /var/docker_item/wordpress/docker-compose-wordpress.yml
+    
+    # 询问博客名称
+    read -p "请输入博客名称: " WORDPRESS_BLOG_NAME
+    # 询问用户名
+    read -p "请输入用户名: " WORDPRESS_USERNAME
+    # 询问密码，不隐藏输入字符
+    echo -e -n "${YELLOW}请输入密码: ${NC}"
+    read WORDPRESS_PASSWORD
+    echo
+    # 提示正在部署
+    echo -e "${GREEN}请牢记以上信息，正在部署请稍后......${NC}"
+    echo
+    
+    # 定义 Docker Compose 配置文件的路径
+    COMPOSE_FILE="/var/docker_item/wordpress/docker-compose-wordpress.yml"
+
+    # 创建 Docker Compose 配置文件
+    cat > $COMPOSE_FILE <<EOL
+version: '2'
+services:
+  mariadb:
+    image: docker.io/bitnami/mariadb:11.2
+    volumes:
+      - /var/docker_data/mariadb:/bitnami/mariadb
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - MARIADB_USER=bn_wordpress
+      - MARIADB_DATABASE=bitnami_wordpress
+    restart: always
+
+  wordpress:
+    image: docker.io/bitnami/wordpress:6
+    ports:
+      - '80:8080'
+      - '443:8443'
+    volumes:
+      - /var/docker_data/wordpress:/bitnami/wordpress
+    depends_on:
+      - mariadb
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - WORDPRESS_DATABASE_HOST=mariadb
+      - WORDPRESS_DATABASE_PORT_NUMBER=3306
+      - WORDPRESS_DATABASE_USER=bn_wordpress
+      - WORDPRESS_DATABASE_NAME=bitnami_wordpress
+      - WORDPRESS_USERNAME=${WORDPRESS_USERNAME}
+      - WORDPRESS_PASSWORD=${WORDPRESS_PASSWORD}
+      - WORDPRESS_BLOG_NAME=${WORDPRESS_BLOG_NAME}
+EOL
+
+    # 使用 Docker Compose 启动容器
+    docker-compose -f $COMPOSE_FILE up -d
+
+    # 提示用户 WordPress 项目已经部署完成
+    echo -e "${GREEN}WordPress 项目已经部署完成。${NC}"
+    read -p "按任意键返回主菜单..." -n 1 -r
+    show_menu
+}
+
 
 # Function to display main menu
 show_menu() {
@@ -447,6 +518,7 @@ show_menu() {
 
     echo -e "${YELLOW}8.${NC} 部署docker项目traffmonetizer"
     echo -e "${YELLOW}9.${NC} 查看系统中运行的docker项目"
+    echo -e "${YELLOW}10.${NC} 部署wordpress"
     echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
@@ -464,6 +536,7 @@ show_menu() {
         7) uninstall_docker ;;
         8) add_docker_project_traffmonetizer ;;
         9) list_running_docker_projects ;;
+        10) add_docker_project_wordpress ;;        
         0) exit ;;
         *) echo "无效选项，请重新选择" && show_menu ;;
     esac
