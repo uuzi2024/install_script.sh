@@ -67,8 +67,10 @@ show_system_info() {
 
     kernel_version=$(uname -r)
 
-    congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control)
-    queue_algorithm=$(sysctl -n net.core.default_qdisc)
+    #congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control)
+    #queue_algorithm=$(sysctl -n net.core.default_qdisc)
+    congestion_algorithm=$(cat /proc/sys/net/ipv4/tcp_congestion_control)
+    queue_algorithm=$(cat /proc/sys/net/core/default_qdisc)
 
     # 尝试使用 lsb_release 获取系统信息
     os_info=$(lsb_release -ds 2>/dev/null)
