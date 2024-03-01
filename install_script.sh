@@ -515,7 +515,6 @@ show_menu() {
     echo -e "${YELLOW}5.${NC} 查看端口占用情况"    
     echo -e "${YELLOW}6.${NC} 安装Docker和Docker Compose"
     echo -e "${YELLOW}7.${NC} 卸载Docker和Docker Compose"
-
     echo -e "${YELLOW}8.${NC} 部署docker项目traffmonetizer"
     echo -e "${YELLOW}9.${NC} 查看系统中运行的docker项目"
     echo -e "${YELLOW}10.${NC} 部署wordpress"
