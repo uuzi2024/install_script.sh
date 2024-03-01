@@ -1,16 +1,13 @@
 #!/bin/bash
-
 # Define colors for highlighting
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
-
 #查询ipv4和ipv6地址
 ip_address() {
 ipv4_address=$(curl -s ipv4.ip.sb)
 ipv6_address=$(curl -s --max-time 1 ipv6.ip.sb)
 }
-
 # 检查是否安装docker
 check_docker_installed() {
     if command -v docker &>/dev/null; then
@@ -20,7 +17,6 @@ check_docker_installed() {
         return 1
     fi
 }
-
 # 检查是否安装docker compose
 check_docker_compose_installed() {
     if command -v docker-compose &>/dev/null; then
@@ -30,7 +26,6 @@ check_docker_compose_installed() {
         return 1
     fi
 }
-
 # 显示系统信息
 show_system_info() {
     clear
@@ -40,7 +35,6 @@ show_system_info() {
     else
       cpu_info=$(lscpu | grep 'BIOS Model name' | awk -F': ' '{print $2}' | sed 's/^[ \t]*//')
     fi
-
     if [ -f /etc/alpine-release ]; then
         # Alpine Linux 使用以下命令获取 CPU 使用率
         cpu_usage_percent=$(top -bn1 | grep '^CPU' | awk '{print " "$4}' | cut -c 1-2)
@@ -49,32 +43,21 @@ show_system_info() {
         cpu_usage_percent=$(top -bn1 | grep "Cpu(s)" | awk '{print " "$2}')
     fi
 
-
     cpu_cores=$(nproc)
-
     mem_info=$(free -b | awk 'NR==2{printf "%.2f/%.2f MB (%.2f%%)", $3/1024/1024, $2/1024/1024, $3*100/$2}')
-
     disk_info=$(df -h | awk '$NF=="/"{printf "%s/%s (%s)", $3, $2, $5}')
-
     country=$(curl -s ipinfo.io/country)
     city=$(curl -s ipinfo.io/city)
-
     isp_info=$(curl -s ipinfo.io/org)
-
     cpu_arch=$(uname -m)
-
     hostname=$(hostname)
-
     kernel_version=$(uname -r)
-
     #congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control)
     #queue_algorithm=$(sysctl -n net.core.default_qdisc)
     congestion_algorithm=$(cat /proc/sys/net/ipv4/tcp_congestion_control)
     queue_algorithm=$(cat /proc/sys/net/core/default_qdisc)
-
     # 尝试使用 lsb_release 获取系统信息
     os_info=$(lsb_release -ds 2>/dev/null)
-
     # 如果 lsb_release 命令失败，则尝试其他方法
     if [ -z "$os_info" ]; then
       # 检查常见的发行文件
@@ -89,26 +72,7 @@ show_system_info() {
       fi
     fi
 
-    output=$(awk 'BEGIN { rx_total = 0; tx_total = 0 }
-        NR > 2 { rx_total += $2; tx_total += $10 }
-        END {
-            rx_units = "Bytes";
-            tx_units = "Bytes";
-            if (rx_total > 1024) { rx_total /= 1024; rx_units = "KB"; }
-            if (rx_total > 1024) { rx_total /= 1024; rx_units = "MB"; }
-            if (rx_total > 1024) { rx_total /= 1024; rx_units = "GB"; }
-
-            if (tx_total > 1024) { tx_total /= 1024; tx_units = "KB"; }
-            if (tx_total > 1024) { tx_total /= 1024; tx_units = "MB"; }
-            if (tx_total > 1024) { tx_total /= 1024; tx_units = "GB"; }
-
-            printf("总接收: %.2f %s\n总发送: %.2f %s\n", rx_total, rx_units, tx_total, tx_units);
-        }' /proc/net/dev)
-
-
     current_time=$(date "+%Y-%m-%d %I:%M %p")
-
-
     swap_used=$(free -m | awk 'NR==3{print $3}')
     swap_total=$(free -m | awk 'NR==3{print $2}')
 
@@ -119,7 +83,6 @@ show_system_info() {
     fi
 
     swap_info="${swap_used}MB/${swap_total}MB (${swap_percentage}%)"
-
     runtime=$(cat /proc/uptime | awk -F. '{run_days=int($1 / 86400);run_hours=int(($1 % 86400) / 3600);run_minutes=int(($1 % 3600) / 60); if (run_days > 0) printf("%d天 ", run_days); if (run_hours > 0) printf("%d时 ", run_hours); printf("%d分\n", run_minutes)}')
 
     echo ""
@@ -145,17 +108,15 @@ show_system_info() {
     echo "公网IPv6地址: $ipv6_address"
     echo "网络拥堵算法: $congestion_algorithm $queue_algorithm"
     echo -e "${GREEN}--------------------------------------------${NC}"
-    echo "$output"
     echo "地理位置: $country $city"
     echo "系统时间: $current_time"
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo "系统运行时长: $runtime"
     echo ""
-    read -p "按任意键返回主菜单..." -n 1 -r
-    show_menu
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_system_menu
 }
-
-# Function to update the system and enable BBR
+# 更新系统开启BBR加速
 update_system_and_enable_bbr() {
     clear
     echo -e "${GREEN}============= 更新系统开启BBR加速 ============== ${NC}"
@@ -178,20 +139,17 @@ update_system_and_enable_bbr() {
     fi
 
     echo ""
-    read -p "按任意键返回主菜单..." -n 1 -r
+    read -p "按任意键返回上级菜单..." -n 1 -r
     show_menu
 }
-
-
-# Function to install Docker and Docker Compose
+# 安装Docker和Docker Compose
 install_docker() {
-    clear
     echo -e "${GREEN}========= 安装Docker和Docker Compose =========${NC}"
     
     if check_docker_installed && check_docker_compose_installed; then
         echo ""
-        read -p "按任意键返回主菜单..." -n 1 -r
-        show_menu
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
     fi
     
     if ! check_docker_installed; then
@@ -203,60 +161,57 @@ install_docker() {
         sudo usermod -aG docker $USER
         sudo systemctl enable docker
         sudo systemctl start docker
-        echo "Docker已安装！"
     fi
     
     if ! check_docker_compose_installed; then
         echo "执行安装Docker Compose的命令..."
         sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
-        echo "Docker Compose已安装！"
+        echo -e "${YELLOW}Docker和Docker Compose已安装！${NC}"
     fi
     
     echo ""
-    read -p "按任意键返回主菜单..." -n 1 -r
-    show_menu
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_docker_menu
 }
-
-# Function to uninstall Docker and Docker Compose
+# 卸载docker和docker compose
 uninstall_docker() {
-    clear
-    echo -e "${GREEN}=========== 卸载Docker和Docker Compose ===========${NC}"
-    
     if ! check_docker_installed && ! check_docker_compose_installed; then
         echo -e "${YELLOW}提示:${NC} 系统中未安装 Docker 和 Docker Compose."
+        echo -e "${YELLOW}无需卸载${NC}"
         echo ""
-        read -p "按任意键返回主菜单..." -n 1 -r
-        show_menu
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
     fi
     
     echo -e "${YELLOW}提示:${NC} 这条命令会删除所有与 Docker 相关的数据，包括镜像、容器、卷等，运行之前，请确保您已经备份了所有重要的数据，小心操作"
     echo ""
     read -p "是否继续？(按 Enter 继续, 按 0 取消): " confirm
     if [[ "$confirm" == "0" ]]; then
-        echo "取消卸载操作"
-        show_menu
+        echo -e "${YELLOW}取消卸载操作${NC}"
+        echo ""
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
     fi
     
     if check_docker_installed; then
-        echo "执行卸载 Docker 的命令..."
+        echo -e "${YELLOW}正在执行卸载docker和docker compose......${NC}"
         sudo apt-get purge  -y docker-ce docker-ce-cli containerd.io
         sudo rm -rf /var/lib/docker
         sudo rm -rf /etc/docker
         sudo groupdel docker
-        echo "Docker 已卸载！"
     fi
     
     if check_docker_compose_installed; then
         echo "执行卸载 Docker Compose 的命令..."
         sudo rm -rf /usr/local/bin/docker-compose
-        echo "Docker Compose 已卸载！"
+        echo -e "${YELLOW}docker和docker compose已成功卸载${NC}"
     fi
     
     echo ""
-    show_menu
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_docker_menu
 }
-
 # Function to change system time
 change_system_time() {
     current_timezone=$(timedatectl | grep "Time zone" | awk '{print $3}')
@@ -300,11 +255,9 @@ change_system_time() {
     echo -e "\e[1;33m当前时间为：\e[0m\e[1;36m${modified_time}\e[0m"
 
     echo ""
-    read -p "按任意键返回主菜单..." -n 1 -r
-    show_menu
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_system_menu
 }
-
-
 # Function to clean up the file system
 clean_filesystem() {
     clear
@@ -326,10 +279,9 @@ clean_filesystem() {
     esac
     echo "文件系统清理完成！"
     echo ""
-    read -p "按任意键返回主菜单..." -n 1 -r
-    show_menu
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_system_menu
 }
-
 clean_all_files() {
     sudo rm -rf /tmp/* /var/log/*.log /var/cache/apt/archives/*.deb
 }
@@ -341,10 +293,9 @@ show_port_usage() {
     echo -e "${GREEN}当前系统端口占用情况:${NC}"
     sudo netstat -tuln
     echo ""
-    read -p "按任意键返回主菜单..." -n 1 -r
-    show_menu
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_system_menu
 }
-
 # Function to validate token
 validate_token() {
     local token="$1"
@@ -361,14 +312,13 @@ validate_token() {
 
     return 0
 }
-
 # Function to add Docker project for traffmonetizer
 add_docker_project_traffmonetizer() {
     # Check if Docker is installed
     if ! command -v docker &> /dev/null; then
         echo -e "\e[1;31m无法部署项目，请先返回主菜单安装 Docker 和 Docker Compose。\e[0m"
-        read -p "按任意键返回主菜单..." -n 1 -r
-        show_menu
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
     fi
 
     clear
@@ -376,10 +326,10 @@ add_docker_project_traffmonetizer() {
 
     while true; do
         #read -p "请输入 token 或输入 0 返回主菜单:" token
-        read -p $'\e[1;33m请输入 token 或输入 0 返回主菜单:\e[0m ' token
+        read -p $'\e[1;33m请输入 token 或输入 0 返回上级菜单:\e[0m ' token
 
         if [[ $token == 0 ]]; then
-            show_menu
+            show_docker_menu
             break
         fi
 
@@ -404,19 +354,12 @@ add_docker_project_traffmonetizer() {
         # 执行部署代码
         $docker_command
         echo -e "${GREEN}traffmonetizer 项目已成功添加！${NC}"
-        read -p "按任意键返回主菜单..." -n 1 -r
-        show_menu
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
     done
 }
-
-
-
-
-
 # Function to list running Docker projects with creation time and current status
-list_running_docker_projects() {
-    clear
-    
+list_running_docker_projects() {   
     # 判断系统是否安装了 Docker
     if ! command -v docker &>/dev/null; then
         echo "系统未安装 Docker，无任何项目可显示。"
@@ -425,13 +368,17 @@ list_running_docker_projects() {
         docker ps --format "项目名称: {{.Names}}\n生成时间: {{.CreatedAt}}\n运行状态: {{.Status}}\n"
     fi
     
-    read -p "按任意键返回主菜单..." -n 1 -r
-    show_menu
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_docker_menu
 }
-
 # Function to add Docker project WordPress
 add_docker_project_wordpress() {
-    clear
+    # Check if Docker is installed
+    if ! command -v docker &> /dev/null; then
+        echo -e "\e[1;31m无法部署项目，请先返回主菜单安装 Docker 和 Docker Compose。\e[0m"
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
+    fi
     echo -e "${GREEN}正在部署 WordPress 项目...${NC}"
 
     # 创建所需目录并赋予 777 权限
@@ -496,49 +443,127 @@ EOL
 
     # 提示用户 WordPress 项目已经部署完成
     echo -e "${GREEN}WordPress 项目已经部署完成。${NC}"
-    read -p "按任意键返回主菜单..." -n 1 -r
-    show_menu
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_docker_menu
 }
 
+restore_default_docker_state() {
+    # Check if Docker is installed
+    if ! command -v docker &> /dev/null; then
+        echo -e "\e[1;31m无法清空，请先返回主菜单安装 Docker 和 Docker Compose。\e[0m"
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
+    fi
 
-# Function to display main menu
-show_menu() {
     clear
-    echo -e "${GREEN}================= 兔哥脚本 ================= ${NC}"
+    echo -e "${YELLOW}正在清空所有 Docker 项目并重置 Docker 守护进程...${NC}"
+    # 停止并删除所有运行中的容器
+    docker rm -f $(docker ps -aq) >/dev/null 2>&1
+    # 删除所有网络
+    docker network prune -f >/dev/null 2>&1
+    # 删除所有镜像
+    docker rmi -f $(docker images -aq) >/dev/null 2>&1
+    # 删除所有卷
+    docker volume prune -f >/dev/null 2>&1
+    # 重置 Docker 守护进程
+    sudo systemctl restart docker
+    echo -e "${GREEN}所有 Docker 项目已清空并且 Docker 守护进程已重置，恢复为初始状态。${NC}"
+    read -p "按 Enter 返回 Docker 管理菜单" enter_key
+    show_docker_menu
+}
+
+show_system_menu() {
+    clear
+    echo -e "${GREEN}================= 系统管理 ================= ${NC}"
     echo -e "脚本版本： ${YELLOW}V1.0.0${NC}       更新时间： ${YELLOW}2024-2-28${NC}"
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
-    echo -e "${YELLOW}1.${NC} 查看系统信息"
-    echo -e "${YELLOW}2.${NC} 修改系统时间"  
-    echo -e "${YELLOW}3.${NC} 文件系统清理"      
-    echo -e "${YELLOW}4.${NC} 更新系统和开启BBR"
-    echo -e "${YELLOW}5.${NC} 查看端口占用情况"    
-    echo -e "${YELLOW}6.${NC} 安装Docker和Docker Compose"
-    echo -e "${YELLOW}7.${NC} 卸载Docker和Docker Compose"
-    echo -e "${YELLOW}8.${NC} 部署docker项目traffmonetizer"
-    echo -e "${YELLOW}9.${NC} 查看系统中运行的docker项目"
-    echo -e "${YELLOW}10.${NC} 部署wordpress"
+    echo -e "${YELLOW}1.${NC} 显示系统信息"
+    echo -e "${YELLOW}2.${NC} 更改系统时间"  
+    echo -e "${YELLOW}3.${NC} 清理文件系统"      
+    echo -e "${YELLOW}4.${NC} 显示端口使用情况"    
     echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
-    echo -e "${YELLOW}0.${NC} ${GREEN}退出${NC}"
+    echo -e "${YELLOW}0.${NC} ${GREEN}返回上级菜单${NC}"
     echo -e ""
     echo -e "${YELLOW}请选择操作: ${NC}"
     read choice
     case $choice in
         1) show_system_info ;;
         2) change_system_time ;;
-        3) clean_filesystem ;;        
-        4) update_system_and_enable_bbr ;;
-        5) show_port_usage ;;        
-        6) install_docker ;;
-        7) uninstall_docker ;;
-        8) add_docker_project_traffmonetizer ;;
-        9) list_running_docker_projects ;;
-        10) add_docker_project_wordpress ;;        
+        3) clean_filesystem ;;
+        4) show_port_usage ;;        
+        0) show_menu ;;
+        *) echo "无效选项，请重新选择" && show_system_menu ;;
+    esac
+}
+
+show_docker_menu() {
+    clear
+    echo -e "${GREEN}================ Docker管理 ================ ${NC}"
+    echo -e "脚本版本： ${YELLOW}V1.0.0${NC}       更新时间： ${YELLOW}2024-2-28${NC}"
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo -e ""
+
+    # 检查Docker是否安装，获取版本和已安装的项目列表
+    docker_installed=$(command -v docker)
+    if [ -z "$docker_installed" ]; then
+        echo -e "${RED}当前未安装 Docker.${NC}"
+    else
+        docker_version=$(docker --version | awk '{print $3}')
+        echo -e "当前系统已安装Docker 版本为：${YELLOW}${docker_version}${NC}"
+    fi
+
+    echo -e ""
+    echo -e "${YELLOW}1.${NC} 安装Docker和Docker Compose"
+    echo -e "${YELLOW}2.${NC} 卸载Docker和Docker Compose"
+    echo -e "${YELLOW}3.${NC} 部署Docker项目: TraffMonetizer"
+    echo -e "${YELLOW}4.${NC} 显示运行中的Docker项目"
+    echo -e "${YELLOW}5.${NC} 部署WordPress"
+    echo -e "${YELLOW}6.${NC} 清空所有Docker项目恢复至新装docker状态"
+    echo -e ""
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo -e ""
+    echo -e "${YELLOW}0.${NC} ${GREEN}返回主菜单${NC}"
+    echo -e ""
+    echo -e "${YELLOW}请选择操作: ${NC}"
+    read choice
+    case $choice in
+        1) install_docker ;;
+        2) uninstall_docker ;;
+        3) add_docker_project_traffmonetizer ;;
+        4) list_running_docker_projects ;;
+        5) add_docker_project_wordpress ;;    
+        6) restore_default_docker_state ;;
+        0) show_menu ;;
+        *) echo "无效选项，请重新选择" && show_docker_menu ;;
+    esac
+}
+
+show_menu() {
+    clear
+    echo -e "${GREEN}================= 兔哥脚本 ================= ${NC}"
+    echo -e "脚本版本： ${YELLOW}V1.0.0${NC}       更新时间： ${YELLOW}2024-2-28${NC}"
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo -e ""
+    echo -e "${YELLOW}1.${NC} 更新系统开启BBR"
+    echo -e "${YELLOW}2.${NC} 系统信息查看及管理"
+    echo -e "${YELLOW}3.${NC} Docker项目管理"
+    echo -e ""
+    echo -e "${GREEN}--------------------------------------------${NC}"
+    echo -e ""
+    echo -e "${YELLOW}0.${NC} ${GREEN}退出脚本${NC}"
+    echo -e ""
+    echo -e "${YELLOW}请选择操作: ${NC}"
+    read choice
+    case $choice in
+        1) update_system_and_enable_bbr ;;
+        2) show_system_menu && show_menu ;;
+        3) show_docker_menu && show_menu ;;
         0) exit ;;
         *) echo "无效选项，请重新选择" && show_menu ;;
     esac
 }
-# Start the script by displaying the main menu
+# 开始执行脚本，显示主菜单
 show_menu
