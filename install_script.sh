@@ -3,6 +3,7 @@
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+ln -sf ~/sh.sh /usr/local/bin/t
 #查询ipv4和ipv6地址
 ip_address() {
 ipv4_address=$(curl -s ipv4.ip.sb)
@@ -12,15 +13,6 @@ ipv6_address=$(curl -s --max-time 1 ipv6.ip.sb)
 check_docker_installed() {
     if command -v docker &>/dev/null; then
         echo -e "${YELLOW}提示:${NC} Docker 已经安装在系统中."
-        return 0
-    else
-        return 1
-    fi
-}
-# 检查是否安装docker compose
-check_docker_compose_installed() {
-    if command -v docker-compose &>/dev/null; then
-        echo -e "${YELLOW}提示:${NC} Docker Compose 已经安装在系统中."
         return 0
     else
         return 1
@@ -146,8 +138,8 @@ update_system_and_enable_bbr() {
 install_docker() {
     echo -e "${GREEN}========= 安装Docker和Docker Compose =========${NC}"
     
-    if check_docker_installed && check_docker_compose_installed; then
-        echo ""
+    if command -v docker &>/dev/null; then
+        echo "Docker 已经安装在系统中，无需重复安装"
         read -p "按任意键返回上级菜单..." -n 1 -r
         show_docker_menu
     fi
@@ -161,9 +153,6 @@ install_docker() {
         sudo usermod -aG docker $USER
         sudo systemctl enable docker
         sudo systemctl start docker
-    fi
-    
-    if ! check_docker_compose_installed; then
         echo "执行安装Docker Compose的命令..."
         sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
@@ -176,9 +165,8 @@ install_docker() {
 }
 # 卸载docker和docker compose
 uninstall_docker() {
-    if ! check_docker_installed && ! check_docker_compose_installed; then
-        echo -e "${YELLOW}提示:${NC} 系统中未安装 Docker 和 Docker Compose."
-        echo -e "${YELLOW}无需卸载${NC}"
+    if ! command -v docker &> /dev/null; then
+        echo -e "\e[1;31m系统中未安装 Docker 和 Docker Compose. 无需卸载\e[0m"
         echo ""
         read -p "按任意键返回上级菜单..." -n 1 -r
         show_docker_menu
@@ -194,15 +182,12 @@ uninstall_docker() {
         show_docker_menu
     fi
     
-    if check_docker_installed; then
+    if command -v docker &>/dev/null; then
         echo -e "${YELLOW}正在执行卸载docker和docker compose......${NC}"
         sudo apt-get purge  -y docker-ce docker-ce-cli containerd.io
         sudo rm -rf /var/lib/docker
         sudo rm -rf /etc/docker
         sudo groupdel docker
-    fi
-    
-    if check_docker_compose_installed; then
         echo "执行卸载 Docker Compose 的命令..."
         sudo rm -rf /usr/local/bin/docker-compose
         echo -e "${YELLOW}docker和docker compose已成功卸载${NC}"
@@ -212,7 +197,7 @@ uninstall_docker() {
     read -p "按任意键返回上级菜单..." -n 1 -r
     show_docker_menu
 }
-# Function to change system time
+# 更改系统时间
 change_system_time() {
     current_timezone=$(timedatectl | grep "Time zone" | awk '{print $3}')
     current_time=$(date)
@@ -258,7 +243,7 @@ change_system_time() {
     read -p "按任意键返回上级菜单..." -n 1 -r
     show_system_menu
 }
-# Function to clean up the file system
+# 清理系统文件
 clean_filesystem() {
     clear
     echo -e "${GREEN}=============== 文件系统清理 =============== ${NC}"
@@ -285,7 +270,7 @@ clean_filesystem() {
 clean_all_files() {
     sudo rm -rf /tmp/* /var/log/*.log /var/cache/apt/archives/*.deb
 }
-# Function to display current port usage
+# 系统端口占用情况
 show_port_usage() {
     clear
     echo -e "${GREEN}=============== 端口占用情况 =============== ${NC}"
@@ -296,23 +281,7 @@ show_port_usage() {
     read -p "按任意键返回上级菜单..." -n 1 -r
     show_system_menu
 }
-# Function to validate token
-validate_token() {
-    local token="$1"
-
-    # Check if the token length is 44 characters
-    if [ ${#token} -ne 44 ]; then
-        return 1
-    fi
-
-    # Check if the token contains only alphanumeric characters and '/'
-    if ! [[ "$token" =~ ^[A-Za-z0-9/]+$ ]]; then
-        return 1
-    fi
-
-    return 0
-}
-# Function to add Docker project for traffmonetizer
+# 使用docker部署traffmonetizer
 add_docker_project_traffmonetizer() {
     # Check if Docker is installed
     if ! command -v docker &> /dev/null; then
@@ -321,8 +290,14 @@ add_docker_project_traffmonetizer() {
         show_docker_menu
     fi
 
-    clear
-    echo -e "${GREEN}docker项目traffmonetizer${NC}"
+    # Check if traffmonetizer container is already running
+    if docker ps -a --format '{{.Names}}' | grep -q "^tm$"; then
+        echo -e "\e[1;31mtraffmonetizer 已经在 Docker 中运行，无需重复部署。\e[0m"
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
+    fi
+
+    echo -e "${GREEN}正在部署docker项目traffmonetizer${NC}"
 
     while true; do
         #read -p "请输入 token 或输入 0 返回主菜单:" token
@@ -336,14 +311,7 @@ add_docker_project_traffmonetizer() {
         # 判断 token 是否为 44 个字符
         if [[ ${#token} -ne 44 ]]; then
             #echo "请输入正确的 44 个字符的 token："
-            echo -e "\e[1;33m请输入正确的 44 个字符的 token：\e[0m"
-            continue
-        fi
-
-        # 判断 token 中是否包含大小写字母或特殊字符 /
-        if [[ ! $token =~ [[:lower:]] || ! $token =~ [[:upper:]] || ! $token =~ "/" ]]; then
-            #echo "请输入正确的 token，包含大小写字母和特殊字符 /。"
-            echo -e "\e[1;33m请输入正确的 token，包含大小写字母和特殊字符 /。\e[0m"
+            echo -e "\e[1;31mtoken格式错误，请重新输入\e[0m"
             continue
         fi
 
@@ -358,11 +326,12 @@ add_docker_project_traffmonetizer() {
         show_docker_menu
     done
 }
-# Function to list running Docker projects with creation time and current status
+# 列出当前系统运行的docker项目
 list_running_docker_projects() {   
     # 判断系统是否安装了 Docker
     if ! command -v docker &>/dev/null; then
-        echo "系统未安装 Docker，无任何项目可显示。"
+        ##echo "系统未安装 Docker，无任何项目可显示。"
+        echo -e "\e[1;31m当前系统未安装Docker，无任何项目可显示\e[0m"
     else
         echo -e "${GREEN}当前运行的 Docker 项目：${NC}"
         docker ps --format "项目名称: {{.Names}}\n生成时间: {{.CreatedAt}}\n运行状态: {{.Status}}\n"
@@ -371,7 +340,7 @@ list_running_docker_projects() {
     read -p "按任意键返回上级菜单..." -n 1 -r
     show_docker_menu
 }
-# Function to add Docker project WordPress
+# 使用docker部署wordpress
 add_docker_project_wordpress() {
     # Check if Docker is installed
     if ! command -v docker &> /dev/null; then
@@ -379,6 +348,14 @@ add_docker_project_wordpress() {
         read -p "按任意键返回上级菜单..." -n 1 -r
         show_docker_menu
     fi
+
+    # Check if WordPress container is already running
+if docker ps -a --format '{{.Names}}' | grep -qE 'wordpress'; then
+        echo -e "\e[1;31mWordPress 已经在 Docker 中运行，无需重复部署。\e[0m"
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
+    fi
+
     echo -e "${GREEN}正在部署 WordPress 项目...${NC}"
 
     # 创建所需目录并赋予 777 权限
@@ -443,10 +420,145 @@ EOL
 
     # 提示用户 WordPress 项目已经部署完成
     echo -e "${GREEN}WordPress 项目已经部署完成。${NC}"
+    echo -e "${GREEN}博客地址：http:$(curl -s ipv4.ip.sb)${NC}"
+    echo -e "${GREEN}博客后台地址：http:$(curl -s ipv4.ip.sb)/wp-admin${NC}"
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_docker_menu
+}
+# 使用docker部署uptime kuma
+add_docker_project_uptime_kuma() {
+    # Check if Docker is installed
+    if ! command -v docker &> /dev/null; then
+        echo -e "\e[1;31m无法部署项目，请先返回主菜单安装 Docker 和 Docker Compose。\e[0m"
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
+    fi
+
+    # Check if Uptime Kuma container is already running
+    if docker ps -a --format '{{.Names}}' | grep -qE 'uptime-kuma'; then
+        echo -e "\e[1;31mUptime Kuma 已经在 Docker 中运行，无需重复部署。\e[0m"
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
+    fi
+
+    echo -e "${GREEN}正在部署 Uptime Kuma 项目...${NC}"
+
+    # 创建所需目录
+    mkdir -p /var/docker_data/uptime_kuma
+    chmod 777 /var/docker_data/uptime_kuma
+    mkdir -p /var/docker_item/uptime_kuma
+    touch /var/docker_item/uptime_kuma/docker-compose.yml
+    # 定义 Docker Compose 配置文件的路径
+    COMPOSE_FILE_uptime_kuma="/var/docker_item/uptime_kuma/docker-compose.yml"
+
+    # 创建 Docker Compose 配置文件
+    cat > $COMPOSE_FILE_uptime_kuma <<EOL
+version: '3'
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    volumes:
+      - /var/docker_data/uptime_kuma:/app/data
+    ports:
+      # <Host Port>:<Container Port>
+      - '3001:3001'
+    restart: unless-stopped
+EOL
+
+    # 使用 Docker Compose 启动容器
+    docker-compose -f $COMPOSE_FILE_uptime_kuma up -d
+
+    # 提示用户 Uptime Kuma 项目已经部署完成
+    echo -e "${GREEN}Uptime Kuma 项目已经部署完成。${NC}"
+    echo -e "${GREEN}Uptime Kuma 可在 http:$(curl -s ipv4.ip.sb):3001 访问。${NC}"
+    read -p "按任意键返回上级菜单..." -n 1 -r
+    show_docker_menu
+}
+add_docker_project_umami() {
+    # Check if Docker is installed
+    if ! command -v docker &> /dev/null; then
+        echo -e "\e[1;31m无法部署项目，请先返回主菜单安装 Docker 和 Docker Compose。\e[0m"
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
+    fi
+
+    # Check if Umami container is already running
+    if docker ps -a --format '{{.Names}}' | grep -qE 'umami'; then
+        echo -e "\e[1;31mUmami 已经在 Docker 中运行，无需重复部署。\e[0m"
+        read -p "按任意键返回上级菜单..." -n 1 -r
+        show_docker_menu
+    fi
+
+    echo -e "${GREEN}正在部署 Umami 项目...${NC}"
+
+    # 创建所需目录
+    mkdir -p /var/docker_data/umami
+    chmod 777 /var/docker_data/umami
+    mkdir -p /var/docker_item/umami
+    touch /var/docker_item/umami/docker-compose.yml
+
+    # 定义 Docker Compose 配置文件的路径
+    COMPOSE_FILE_umami="/var/docker_item/umami/docker-compose.yml"
+
+    # 创建 Docker Compose 配置文件
+    cat > $COMPOSE_FILE_umami <<EOL
+---
+version: '3'
+services:
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:umami@db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: replace-me-with-a-random-string
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3000/api/heartbeat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: umami
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+volumes:
+  umami-db-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /var/docker_data/umami
+      o: bind
+EOL
+
+    # 使用 Docker Compose 启动容器
+    docker-compose -f $COMPOSE_FILE_umami up -d
+
+    # 提示用户 Umami 项目已经部署完成
+    echo -e "${GREEN}Umami 项目已经部署完成。${NC}"
+    echo -e "${GREEN}默认用户名为 admin，密码为 umami${NC}"
+    echo -e "${GREEN}Umami 可在 http:$(curl -s ipv4.ip.sb):3000 访问。${NC}"
     read -p "按任意键返回上级菜单..." -n 1 -r
     show_docker_menu
 }
 
+# 清空docker
 restore_default_docker_state() {
     # Check if Docker is installed
     if ! command -v docker &> /dev/null; then
@@ -455,8 +567,8 @@ restore_default_docker_state() {
         show_docker_menu
     fi
 
-    clear
     echo -e "${YELLOW}正在清空所有 Docker 项目并重置 Docker 守护进程...${NC}"
+    rm -rf /var/docker_data/wordpress /var/docker_data/mariadb
     # 停止并删除所有运行中的容器
     docker rm -f $(docker ps -aq) >/dev/null 2>&1
     # 删除所有网络
@@ -471,7 +583,7 @@ restore_default_docker_state() {
     read -p "按 Enter 返回 Docker 管理菜单" enter_key
     show_docker_menu
 }
-
+# 子菜单：系统管理
 show_system_menu() {
     clear
     echo -e "${GREEN}================= 系统管理 ================= ${NC}"
@@ -485,7 +597,8 @@ show_system_menu() {
     echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
-    echo -e "${YELLOW}0.${NC} ${GREEN}返回上级菜单${NC}"
+    echo -e "${YELLOW}0.${NC} ${GREEN}返回上级菜单${NC}                  ${YELLOW}00.${NC} ${GREEN}退出脚本${NC}"
+    ##echo -e "${YELLOW}00.${NC} ${GREEN}退出脚本${NC}"
     echo -e ""
     echo -e "${YELLOW}请选择操作: ${NC}"
     read choice
@@ -495,10 +608,11 @@ show_system_menu() {
         3) clean_filesystem ;;
         4) show_port_usage ;;        
         0) show_menu ;;
+        00) exit ;;
         *) echo "无效选项，请重新选择" && show_system_menu ;;
     esac
 }
-
+# 子菜单：docker管理   
 show_docker_menu() {
     clear
     echo -e "${GREEN}================ Docker管理 ================ ${NC}"
@@ -507,13 +621,15 @@ show_docker_menu() {
     echo -e ""
 
     # 检查Docker是否安装，获取版本和已安装的项目列表
-    docker_installed=$(command -v docker)
-    if [ -z "$docker_installed" ]; then
-        echo -e "${RED}当前未安装 Docker.${NC}"
-    else
-        docker_version=$(docker --version | awk '{print $3}')
-        echo -e "当前系统已安装Docker 版本为：${YELLOW}${docker_version}${NC}"
-    fi
+    #docker_installed=$(command -v docker)
+    # docker_version=$(docker --version 2>&1)
+    # if [[ $docker_version == *"command not found"* ]]; then
+    # #if [ -z "$docker_installed" ]; then
+    #     echo -e "${RED}当前未安装 Docker.${NC}"
+    # else
+    #     docker_version=$(docker --version | awk '{print $3}')
+    #     echo -e "当前系统已安装Docker 版本为：${YELLOW}${docker_version}${NC}"
+    # fi
 
     echo -e ""
     echo -e "${YELLOW}1.${NC} 安装Docker和Docker Compose"
@@ -522,10 +638,13 @@ show_docker_menu() {
     echo -e "${YELLOW}4.${NC} 显示运行中的Docker项目"
     echo -e "${YELLOW}5.${NC} 部署WordPress"
     echo -e "${YELLOW}6.${NC} 清空所有Docker项目恢复至新装docker状态"
+    echo -e "${YELLOW}7.${NC} 部署uptime-kuma"
+    echo -e "${YELLOW}8.${NC} 部署网站统计工具umami"
     echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
-    echo -e "${YELLOW}0.${NC} ${GREEN}返回主菜单${NC}"
+    echo -e "${YELLOW}0.${NC} ${GREEN}返回主菜单${NC}                  ${YELLOW}00.${NC} ${GREEN}退出脚本${NC}"
+    ##echo -e "${YELLOW}00.${NC} ${GREEN}退出脚本${NC}"
     echo -e ""
     echo -e "${YELLOW}请选择操作: ${NC}"
     read choice
@@ -536,7 +655,10 @@ show_docker_menu() {
         4) list_running_docker_projects ;;
         5) add_docker_project_wordpress ;;    
         6) restore_default_docker_state ;;
+        7) add_docker_project_uptime_kuma ;;
+        8) add_docker_project_umami ;;
         0) show_menu ;;
+        00) exit ;;
         *) echo "无效选项，请重新选择" && show_docker_menu ;;
     esac
 }
