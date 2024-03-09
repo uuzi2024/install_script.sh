@@ -17,8 +17,8 @@ curl -sS -O https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/do
 
 # vultr-cli-manager.sh
 <div style="display: flex; justify-content: center;">
-    <img src="/images/vultr-cli-namager.sh-1.webp" alt="vultr-cli-manager.sh-1.webp" style="width: 70%; height: auto;">
-    <img src="/images/vultr-cli-namager.sh-2.webp" alt="vultr-cli-manager.sh-2.webp" style="width: 70%; height: auto;">
+    <img src="/images/vultr-cli-manager.sh-1.webp" alt="vultr-cli-manager.sh-1.webp" style="width: 70%; height: auto;">
+    <img src="/images/vultr-cli-manager.sh-2.webp" alt="vultr-cli-manager.sh-2.webp" style="width: 70%; height: auto;">
 </div>
 
 **部署代码：**
