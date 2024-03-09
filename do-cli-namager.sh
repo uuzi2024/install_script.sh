@@ -94,13 +94,16 @@ input_do_token(){
     doctl auth init
     clear
     echo -e "\e[1;33mdo账号信息:\e[0m"
-    echo "账号邮箱："doctl account get --format Email | grep -oE '[[:alnum:].]+@[[:alnum:].]+'
-    echo "实例限额："doctl account get --format DropletLimit | awk 'NR==2 {print $1}'
-    echo "账号状态："doctl doctl account get --format Status | awk 'NR==2 {print $1}'
-    read -n 1 -s -r -p "按任意键到管理菜单"
-    echo -e ""
-    echo -e ""
-
+    # echo "账号邮箱："doctl account get --format Email | grep -oE '[[:alnum:].]+@[[:alnum:].]+'
+    # echo "实例限额："doctl account get --format DropletLimit | awk 'NR==2 {print $1}'
+    # echo "账号状态："doctl doctl account get --format Status | awk 'NR==2 {print $1}'
+    echo "账号邮箱：$(doctl account get --format Email | grep -oE '[[:alnum:].]+@[[:alnum:].]+')"
+    echo "实例限额：$(doctl account get --format DropletLimit | awk 'NR==2 {print $1}')"
+    echo "账号状态：$(doctl account get --format Status | awk 'NR==2 {print $1}')"
+    # read -n 1 -s -r -p "按任意键到管理菜单"
+    # echo -e ""
+    # echo -e ""
+    instance_manager
 }
 list_instances() {
     printf "%-18s %-8s %-5s %-7s %-s\n" "公网IPv4" "内存" "CPU" "硬盘" "  区域"
@@ -125,12 +128,12 @@ add_instance(){
     result=$(doctl compute ssh-key list)
     ssh_key_id=$(echo "$result" | awk 'NR==2 {print $1}')
     case $region_choice in
-        1) doctl compute droplet create --region nyc1 --image debian-12-x64 --size s-1vcpu-1gb --ssh-keys $ssh_key_id nyc1;;
-        2) doctl compute droplet create --region sfo3 --image debian-12-x64 --size s-1vcpu-1gb --ssh-keys $ssh_key_id sfo3;;
-        3) doctl compute droplet create --region ams3 --image debian-12-x64 --size s-1vcpu-1gb --ssh-keys $ssh_key_id ams3;;
-        4) doctl compute droplet create --region sgp1 --image debian-12-x64 --size s-1vcpu-1gb --ssh-keys $ssh_key_id sgp1;;
-        5) doctl compute droplet create --region fra1 --image debian-12-x64 --size s-1vcpu-1gb --ssh-keys $ssh_key_id fra1;;
-        6) doctl compute droplet create --region syd1 --image debian-12-x64 --size s-1vcpu-1gb --ssh-keys $ssh_key_id syd1;;
+        1) doctl compute droplet create --region nyc1 --image debian-12-x64 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id nyc1;;
+        2) doctl compute droplet create --region sfo3 --image debian-12-x64 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id sfo3;;
+        3) doctl compute droplet create --region ams3 --image debian-12-x64 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id ams3;;
+        4) doctl compute droplet create --region sgp1 --image debian-12-x64 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id sgp1;;
+        5) doctl compute droplet create --region fra1 --image debian-12-x64 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id fra1;;
+        6) doctl compute droplet create --region syd1 --image debian-12-x64 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id syd1;;
         *) echo "无效的选择"; return;;
     esac
 }
@@ -168,18 +171,25 @@ bulk_start_instances() {
     result=$(doctl compute ssh-key list)
     ssh_key_id=$(echo "$result" | awk 'NR==2 {print $1}')
     echo "当前账号实例限额：$limit"
-    
+    echo -en $'\e[1;33m请输入开机脚本（输入00取消操作）:\e[0m\n'
+    IFS='' read -r -d '++' user_data
+    #echo "$user_data"
+    printf "%s\n" "$user_data" > user_data_script.sh
+    #exit;
+    if [ "$user_data" = "00" ]; then
+        echo -e "\e[1;33m取消输入操作\e[0m"
+        show_menu
+    else
+    #echo "$user_data" > user_data_script.sh
+    echo ""
+    echo -en $'\e[1;33m正在部署,请稍后...:\e[0m\n'
     for ((i=1; i<=limit; i++)); do
-        # 在这里编写开启实例的逻辑
-        doctl compute droplet create --region nyc1 --image debian-12-x64 --size s-1vcpu-1gb --ssh-keys $ssh_key_id --user-data '#!/bin/bash
-        apt-get update
-        apt-get install -y docker.io
-        systemctl start docker
-        systemctl enable docker
-        docker run -d --restart=always --name tm traffmonetizer/cli_v2 start accept --token zP8z08OI/8z6CHcO8MEEtkgCSGyQdGg85nKMVx9Ifcw=' nyc1
-        # doctl create droplet 或者其他启动实例的命令
+            # 在这里编写开启实例的逻辑
+            #doctl compute droplet create --region nyc1 --image debian-12-x64 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id --user-data '$user_data' nyc1
+            doctl compute droplet create --region nyc1 --image debian-12-x64 --size s-1vcpu-512mb-10gb --ssh-keys $ssh_key_id --user-data-file user_data_script.sh nyc1
+            # doctl create droplet 或者其他启动实例的命令
     done
-
+    fi
 }
 delete_all_instances() {
     droplet_ids=$(doctl compute droplet list --format ID --no-header)
@@ -193,7 +203,8 @@ delete_all_instances() {
 instance_manager(){
     while true; do
     echo -e "${GREEN}============= 兔哥 do 管理脚本 ============= ${NC}"
-    echo -e "脚本版本： ${YELLOW}V1.0.0${NC}       更新时间： ${YELLOW}2024-3-6${NC}"
+    echo -e "电报交流： ${YELLOW}https://t.me/uuzichat${NC}"
+    echo -e "博客交流： ${YELLOW}https://uuzi.net/${NC}"  
     echo -e "${GREEN}--------------------------------------------${NC}"
         echo -e ""
         echo "1. 查看实例"
@@ -245,6 +256,8 @@ show_menu() {
     while true; do
     echo -e "${GREEN}============= 兔哥 do 管理脚本 ============= ${NC}"
     echo -e "脚本版本： ${YELLOW}V1.0.0${NC}       更新时间： ${YELLOW}2024-3-6${NC}"
+    echo -e "电报交流： ${YELLOW}https://t.me/uuzichat${NC}"
+    echo -e "博客交流： ${YELLOW}https://uuzi.net/${NC}"    
     echo -e "${GREEN}--------------------------------------------${NC}"
         echo -e ""
         echo "1. 安装do cli工具(使用脚本必须安装此工具)"
