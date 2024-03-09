@@ -3,11 +3,11 @@
 
 # do-cli-namager.sh
 <div style="display: flex;">
-    <img src="/images/do-cli-namager.sh-1.webp" alt="do-cli-namager.sh" style="width: 50%; height: auto;">
-    <img src="/images/do-cli-namager.sh-2.webp" alt="do-cli-namager.sh" style="width: 50%; height: auto;">
+    <img src="/images/do-cli-namager.sh-1.webp" alt="do-cli-namager.sh" style="width: 80%; height: auto;">
+    <img src="/images/do-cli-namager.sh-2.webp" alt="do-cli-namager.sh" style="width: 80%; height: auto;">
 </div>
-**部署代码：**
 
+**部署代码：**
 ```
 curl -sS -O https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/do-cli-namager.sh && chmod +x do-cli-namager.sh && ./do-cli-namager.sh
 ```
