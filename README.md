@@ -16,6 +16,11 @@ curl -sS -O https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/do
 注意：批量开机输入开机脚本后要在结尾加上++，才可以执行！
 
 # vultr-cli-manager.sh
+<div style="display: flex; justify-content: center;">
+    <img src="/images/vultr-cli-namager.sh-1.webp" alt="vultr-cli-namager.sh" style="width: 70%; height: auto;">
+    <img src="/images/vultr-cli-namager.sh-2.webp" alt="vultr-cli-namager.sh" style="width: 70%; height: auto;">
+</div>
+
 **部署代码：**
 ```
 curl -sS -O https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/vultr-cli-manager.sh && chmod +x vultr-cli-manager.sh && ./vultr-cli-manager.sh
