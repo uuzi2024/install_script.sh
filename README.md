@@ -2,6 +2,8 @@
 一键更新软件列表和系，安装常用组件，一键安装docker以及docker compose。
 
 # do-cli-namager.sh
+![do-cli-namager.sh](/images/do-cli-namager.sh-1.webp)
+![do-cli-namager.sh](/images/do-cli-namager.sh-2.webp)
 部署代码：
 curl -sS -O https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/do-cli-namager.sh && chmod +x do-cli-namager.sh && ./do-cli-namager.sh
 
