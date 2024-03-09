@@ -2,10 +2,11 @@
 一键更新软件列表和系，安装常用组件，一键安装docker以及docker compose。
 
 # do-cli-namager.sh
-<div style="display: flex;">
-    <img src="/images/do-cli-namager.sh-1.webp" alt="do-cli-namager.sh" style="width: 80%; height: auto;">
-    <img src="/images/do-cli-namager.sh-2.webp" alt="do-cli-namager.sh" style="width: 80%; height: auto;">
+<div style="display: flex; justify-content: center;">
+    <img src="/images/do-cli-namager.sh-1.webp" alt="do-cli-namager.sh" style="width: 70%; height: auto;">
+    <img src="/images/do-cli-namager.sh-2.webp" alt="do-cli-namager.sh" style="width: 70%; height: auto;">
 </div>
+
 
 **部署代码：**
 ```
