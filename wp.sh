@@ -49,17 +49,11 @@ user www-data;
 worker_processes auto;
 pid /run/nginx.pid;
 include /etc/nginx/modules-enabled/*.conf;
-
 events {
     worker_connections 1024;
     multi_accept on;
 }
-
 http {
-    ##
-    # Basic Settings
-    ##
-
     sendfile on;
     tcp_nopush on;
     tcp_nodelay on;
@@ -67,57 +61,23 @@ http {
     types_hash_max_size 2048;
     server_tokens off;
     client_max_body_size 64m;
-
-    # server_names_hash_bucket_size 64;
-    # server_name_in_redirect off;
-
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubdomains";
-
-
-    ##
-    # SSL Settings
-    ##
+    add_header Strict-Transport-Security 'max-age=31536000; includeSubdomains';
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
     ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
     ssl_prefer_server_ciphers on;
-
-    ##
-    # Logging Settings
-    ##
-
     access_log /var/log/nginx/access.log;
     error_log /var/log/nginx/error.log;
-
-    ##
-    # Gzip Settings
-    ##
-
     gzip on;
-
-    # gzip_vary on;
     gzip_proxied any;
     gzip_comp_level 5;
-    # gzip_buffers 16 8k;
-    # gzip_http_version 1.1;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
- 
-    ##
-    # Cache Settings
-    ##
-
     fastcgi_cache_key "\$scheme\$request_method\$host\$request_uri";
     add_header Fastcgi-Cache \$upstream_cache_status;
-
-    ##
-    # Virtual Host Configs
-    ##
-
     include /etc/nginx/conf.d/*.conf;
     include /etc/nginx/sites-enabled/*;
-
     server {
         listen 80 default_server;
         listen [::]:80 default_server;
@@ -236,13 +196,13 @@ wget https://cn.wordpress.org/latest-zh_CN.zip
 unzip latest-zh_CN.zip
 mv wordpress/* .
 rm latest-zh_CN.zip
-
+chown www-data:www-data -R /var/www/$domain/public/
 
 cat >> /var/www/$domain/scripts/backups.sh << EOF
 #!/bin/bash
 
 # Get the bucket name from an argument passed to the script
-BUCKET_NAME=${1-''}
+BUCKET_NAME=\${1-''}
 
 if [ ! -d ../backups/ ]
 then
@@ -250,37 +210,38 @@ then
     exit
 fi
 
-NOW=$(date +%Y%m%d%H%M%S)
-SQL_BACKUP=${NOW}_database.sql
-FILES_BACKUP=${NOW}_files.tar.gz
+NOW=\$(date +%Y%m%d%H%M%S)
+SQL_BACKUP=\${NOW}_database.sql
+FILES_BACKUP=\${NOW}_files.tar.gz
 
-DB_NAME=$(sed -n "s/define( *'DB_NAME', *'\([^']*\)'.*/\1/p" wp-config.php)
-DB_USER=$(sed -n "s/define( *'DB_USER', *'\([^']*\)'.*/\1/p" wp-config.php)
-DB_PASSWORD=$(sed -n "s/define( *'DB_PASSWORD', *'\([^']*\)'.*/\1/p" wp-config.php)
-DB_HOST=$(sed -n "s/define( *'DB_HOST', *'\([^']*\)'.*/\1/p" wp-config.php)
+DB_NAME=\$(sed -n "s/define( *'DB_NAME', *'\([^']*\)'.*/\1/p" wp-config.php)
+DB_USER=\$(sed -n "s/define( *'DB_USER', *'\([^']*\)'.*/\1/p" wp-config.php)
+DB_PASSWORD=\$(sed -n "s/define( *'DB_PASSWORD', *'\([^']*\)'.*/\1/p" wp-config.php)
+DB_HOST=\$(sed -n "s/define( *'DB_HOST', *'\([^']*\)'.*/\1/p" wp-config.php)
 
 # Backup database
-mysqldump --add-drop-table -u$DB_USER -p$DB_PASSWORD -h$DB_HOST $DB_NAME > ../backups/$SQL_BACKUP 2>&1
+mysqldump --add-drop-table -u\$DB_USER -p\$DB_PASSWORD -h\$DB_HOST \$DB_NAME > ../backups/\$SQL_BACKUP 2>&1
 
 # Compress the database dump file
-gzip ../backups/$SQL_BACKUP
+gzip ../backups/\$SQL_BACKUP
 
 # Backup the entire public directory
-tar -zcf ../backups/$FILES_BACKUP .
+tar -zcf ../backups/\$FILES_BACKUP .
 
 # Remove backup files that are a month old
-rm -f ../backups/$(date +%Y%m%d* --date='1 month ago').gz
+rm -f ../backups/\$(date +%Y%m%d* --date='1 month ago').gz
 
 # Copy files to S3 if bucket given
-if [ ! -z "$BUCKET_NAME" ]
+if [ ! -z "\$BUCKET_NAME" ]
 then
-    aws s3 cp ../backups/$SQL_BACKUP.gz s3://$BUCKET_NAME/ --quiet --storage-class STANDARD
-    aws s3 cp ../backups/$FILES_BACKUP s3://$BUCKET_NAME/ --quiet --storage-class STANDARD
+    aws s3 cp ../backups/\$SQL_BACKUP.gz s3://\$BUCKET_NAME/ --quiet --storage-class STANDARD
+    aws s3 cp ../backups/\$FILES_BACKUP s3://\$BUCKET_NAME/ --quiet --storage-class STANDARD
 fi
 
 EOF
 
 (crontab -l ; echo "0 5 * * * cd /var/www/$domain/public/ && /var/www/$domain/scripts/backup.sh s3://$BUCKET_NAME/") | crontab -
+
 
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
