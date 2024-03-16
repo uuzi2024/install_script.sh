@@ -5,6 +5,7 @@ green() {
 dpkg-reconfigure tzdata
 # 更新软件包列表并升级已安装的软件包
 apt update && apt upgrade -y
+apt install unzip -y
 apt autoremove -y
 
 # 允许SSH、HTTP和HTTPS流量通过防火墙
