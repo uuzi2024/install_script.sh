@@ -240,11 +240,4 @@ fi
 
 EOF
 
-(crontab -l ; echo "0 5 * * * cd /var/www/$domain/public/ && /var/www/$domain/scripts/backup.sh s3://$BUCKET_NAME/") | crontab -
-
-
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-
 rm -rf /var/www/$domain/cache/*
