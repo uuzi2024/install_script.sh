@@ -5,7 +5,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 ln -sf ~/sh.sh /usr/local/bin/t
-wget -O do-cli-namager.sh https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/install_script.sh && chmod +x install_script.sh
+wget -O install_script.sh https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/install_script.sh && chmod +x install_script.sh
 wget -O do-cli-namager.sh https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/do-cli-namager.sh && chmod +x do-cli-namager.sh
 wget -O vultr-cli-manager.sh https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/vultr-cli-manager.sh && chmod +x vultr-cli-manager.sh
 #查询ipv4和ipv6地址
