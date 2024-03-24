@@ -3,7 +3,10 @@
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
 ln -sf ~/sh.sh /usr/local/bin/t
+wget -O do-cli-namager.sh https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/do-cli-namager.sh && chmod +x do-cli-namager.sh
+wget -O vultr-cli-manager.sh https://raw.githubusercontent.com/uuzi2024/install_script.sh/main/vultr-cli-manager.sh && chmod +x vultr-cli-manager.sh
 #查询ipv4和ipv6地址
 ip_address() {
 ipv4_address=$(curl -s ipv4.ip.sb)
@@ -672,6 +675,8 @@ show_menu() {
     echo -e "${YELLOW}1.${NC} 更新系统开启BBR"
     echo -e "${YELLOW}2.${NC} 系统信息查看及管理"
     echo -e "${YELLOW}3.${NC} Docker项目管理"
+    echo -e "${YELLOW}4.${NC} vultr cli 管理"
+    echo -e "${YELLOW}5.${NC} do cli 管理"       
     echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
@@ -683,6 +688,8 @@ show_menu() {
         1) update_system_and_enable_bbr ;;
         2) show_system_menu && show_menu ;;
         3) show_docker_menu && show_menu ;;
+        4) bash vultr-cli-manager.sh ;;
+        5) bash do-cli-namager.sh ;;
         0) exit ;;
         *) echo "无效选项，请重新选择" && show_menu ;;
     esac

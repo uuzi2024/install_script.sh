@@ -1,3 +1,4 @@
+#!/bin/bash
 install_wget_and_curl() {
     # Check if wget is installed
     if ! command -v wget &>/dev/null; then
@@ -293,5 +294,4 @@ show_menu() {
     done
 }
 # 调用函数
-chsh -s /bin/bash
 show_menu
