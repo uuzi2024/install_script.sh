@@ -293,4 +293,5 @@ show_menu() {
     done
 }
 # 调用函数
+chsh -s /bin/bash
 show_menu
