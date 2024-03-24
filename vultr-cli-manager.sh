@@ -266,6 +266,7 @@ show_menu() {
         echo "2. 列出实例"
         echo "3. 删除实例"
         echo "0. 退出脚本"
+        echo "00. 返回主菜单脚本"
         echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
@@ -285,6 +286,9 @@ show_menu() {
             0)
                 exit 0
                 ;;
+            00)
+                bash install_script.sh
+                ;;    
             *)
                 clear
                 echo -e "\e[1;33m无效选择，请重新输入。\e[0m"
