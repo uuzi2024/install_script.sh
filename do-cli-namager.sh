@@ -265,6 +265,7 @@ show_menu() {
         echo "2. 输入do token"
         echo "3. 实例管理"
         echo "0. 退出脚本"
+        echo "00. 返回主菜单"
         echo -e ""
     echo -e "${GREEN}--------------------------------------------${NC}"
     echo -e ""
@@ -283,6 +284,9 @@ show_menu() {
                 ;;
             0)
                 exit 0
+                ;;
+            00)
+                bash install_script.sh
                 ;;
             *)
                 clear
