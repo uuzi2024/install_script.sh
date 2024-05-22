@@ -253,7 +253,127 @@ delete_instance() {
         echo -e "\e[1;33m该实例已成功删除\e[0m"
     fi
 }
+add_instance_snapshot(){
+    clear
+    echo -e "\e[1;33m当前账号存在的快照：\e[0m"
+    vultr-cli snapshot list
+    echo -e ""
+    echo -e ""
+    read -p $'\e[1;33m请输入你想要新建快照的实例ID（输入00取消删除操作）: \e[0m' instance_id
+    if [ "$instance_id" = "00" ]; then
+        echo -e "\e[1;33m取消删除操作\e[0m"
+        show_menu
 
+    else
+    clear
+    read -p $'\e[1;35m输入实例名称: \e[0m' label
+    # 显示地区选择菜单
+#echo "请选择国家或地区"
+echo -e "${GREEN}-----------------------选择国家或地区-----------------------${NC}"
+echo -e ""
+echo -e "\e[1;33m亚洲地区：\e[0m"
+echo "1. 新加坡新加坡 (sgp)             5. 印度德里 (del)"
+echo "2. 日本东京 (nrt)                 6. 印度孟买 (bom)"
+echo "3. 日本大阪 (itm)                 7. 韩国首尔 (icn)"
+echo "4. 印度班加罗尔 (blr)             8. 以色列特拉维夫 (tlv)"
+
+echo -e "\e[1;33m美洲地区：\e[0m"
+echo "9. 美国迈阿密 (mia)              16. 美国硅谷 (sjc)"
+echo "10. 美国亚特兰大 (atl)           17. 美国新泽西州 (ewr)"
+echo "11. 美国芝加哥 (ord)             18. 加拿大多伦多 (yto)"
+echo "12. 美国达拉斯 (dfw)             19. 智利圣地亚哥 (scl)"
+echo "13. 美国洛杉矶 (lax)             20. 巴西圣保罗 (sao)"
+echo "14. 美国西雅图 (sea)             21. 墨西哥墨西哥城 (mex)"
+echo "15. 美国(夏威夷)檀香山 (hnl)"
+
+echo -e "\e[1;33m欧洲地区：\e[0m"
+echo "22. 荷兰阿姆斯特丹 (ams)         26. 西班牙马德里 (mad)"
+echo "23. 法国巴黎 (cdg)               27. 英国曼彻斯特 (man)"
+echo "24. 德国法兰克福 (fra)           28. 波兰华沙 (waw)"
+echo "25. 英国伦敦 (lhr)               29. 瑞典斯德哥尔摩 (sto)"
+
+echo -e "\e[1;33m澳洲地区：\e[0m"
+echo "30. 澳大利亚墨尔本 (mel)"
+echo "31. 澳大利亚悉尼 (syd)"
+echo -e "\e[1;33m非洲地区：\e[0m"
+echo "32. 南非约翰内斯堡 (jnb)" | pr -t -2
+echo -e ""
+echo -e "${GREEN}----------------------------------------------------------${NC}"
+
+    echo -e "\e[1;35m输入对应的数字选择国家和地区:\e[0m"
+    read -r region_choice
+    clear
+    # 根据用户的选择设置相应的地区代码
+    case $region_choice in
+        1) region="sgp";;
+        2) region="nrt";;
+        3) region="itm";;
+        4) region="blr";;
+        5) region="del";;
+        6) region="bom";;
+        7) region="icn";;
+        8) region="tlv";;
+        9) region="mia";;
+        10) region="atl";;
+        11) region="ord";;
+        12) region="dfw";;
+        13) region="lax";;
+        14) region="sea";;
+        15) region="hnl";;
+        16) region="sjc";;
+        17) region="ewr";;
+        18) region="yto";;
+        19) region="scl";;
+        20) region="sao";;
+        21) region="mex";;
+        22) region="ams";;     
+        23) region="cdg";;
+        24) region="fra";;
+        25) region="lhr";;
+        26) region="mad";;
+        27) region="man";;
+        28) region="waw";;
+        29) region="sto";;
+        30) region="mel";;
+        31) region="syd";;   
+        32) region="jnb";;
+
+        *) echo "无效的选择"; return;;
+    esac
+    
+
+     # 显示系统配置选择菜单
+    #echo "请选择系统配置: "
+    #echo -e "\e[1;33m请选择机型配置: \e[0m"
+    #echo -e "\e[1;33m请选择系统编号:\e[0m"
+    echo -e "${GREEN}---------------------选择机型配置---------------------${NC}"
+    echo -e ""
+    echo "1. 1核-1G-25G磁盘-1T流量 (vc2-1c-1gb)"
+    echo "2. 1核-2G-55G磁盘-2T流量 (vc2-1c-2gb)"
+    echo "3. 2核-2G-65G磁盘-3T流量 (vc2-2c-2gb)"
+    echo "4. 2核-4G-80G磁盘-3T流量 (vc2-2c-4gb)"
+    echo -e ""
+    echo -e "${GREEN}--------------------------------------------------------${NC}"
+    #cho "请输入选择编号: "
+    echo -e "\e[1;33m请输入选择编号: \e[0m"
+    read -r plan_choice
+    clear
+    # 根据用户的选择设置相应的系统配置代码
+    case $plan_choice in
+        1) plan="vc2-1c-1gb";;
+        2) plan="vc2-1c-2gb";;
+        3) plan="vc2-2c-2gb";;
+        4) plan="vc2-2c-4gb";;
+        *) echo "无效的选择"; return;;
+    esac
+        vultr-cli instance create --snapshot $instance_id --plan $plan --region $region  --label "$label"
+        #echo $instance_id
+        #echo $plan
+        #echo $region
+        #echo $label
+        echo -e "\e[1;33m恭喜! 快照实例名称:$label已创建成功! \e[0m"
+    fi
+}
 
 # 提供操作选择
 show_menu() {
@@ -265,6 +385,7 @@ show_menu() {
         echo "1. 新建实例"
         echo "2. 列出实例"
         echo "3. 删除实例"
+        echo "4. 使用快照新建实例"
         echo "0. 退出脚本"
         echo "00. 返回主菜单脚本"
         echo -e ""
@@ -282,6 +403,9 @@ show_menu() {
                 ;;
             3)
                 delete_instance
+                ;;
+            4)
+                add_instance_snapshot
                 ;;
             0)
                 exit 0
