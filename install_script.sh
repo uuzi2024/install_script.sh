@@ -49,9 +49,4 @@ fi
 sysctl -p
 echo "BBR 已启用"
 
-# 安装 V2Ray
-echo "安装 V2Ray..."
-bash <(wget -qO- -o- https://git.io/v2ray.sh)
-echo "V2Ray 安装完成"
-
 echo "脚本执行完成！"
