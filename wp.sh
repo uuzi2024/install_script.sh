@@ -27,6 +27,9 @@ sudo service nginx restart
 sudo add-apt-repository ppa:ondrej/php -y
 sudo apt update -y
 
+# 添加socat
+sudo apt install socat
+
 # 安装PHP及其相关模块
 sudo apt install php8.3-fpm php8.3-common php8.3-mysql \
 php8.3-xml php8.3-xmlrpc php8.3-curl php8.3-gd \
